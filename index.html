@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ecem & melih</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .hidden { display: none; }
+        
+        #identityOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .identity-card { background: #1e293b; padding: 40px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; max-width: 450px; }
+        .identity-btn { width: 200px; padding: 15px; margin: 10px; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.3s; color: white; }
+        .btn-ecem { background: #ec4899; }
+        .btn-melih { background: #3b82f6; }
+        .identity-btn:hover { transform: translateY(-5px); filter: brightness(1.2); }
+
+        #terminal { font-family: monospace; background: black; padding: 25px; border-radius: 15px; text-align: left; width: 100%; max-width: 600px; margin-top: 50px; border: 1px solid #1e293b; color: #10b981; line-height: 1.6; }
+
+        .birthday-container { display: flex; justify-content: space-between; width: 100%; max-width: 1100px; margin-bottom: 25px; gap: 20px; }
+        .bday-box { flex: 1; background: rgba(30, 41, 59, 0.7); padding: 15px; border-radius: 20px; text-align: center; border: 1px solid #334155; position: relative; }
+        
+        .ecem-special { border: 1px solid #ec4899; background: linear-gradient(145deg, #1e293b, #251628); }
+        .ecem-special h4 { color: #f472b6; margin: 0; font-size: 0.85rem; letter-spacing: 1px; }
+        .glow-text { color: #ec4899; font-weight: bold; animation: softGlow 3s ease-in-out infinite alternate; }
+        
+        @keyframes softGlow {
+            from { text-shadow: 0 0 2px #fff, 0 0 5px #ec4899; }
+            to { text-shadow: 0 0 4px #fff, 0 0 10px #ec4899; }
+        }
+
+        .melih-box h4 { color: #60a5fa; margin: 0; font-size: 0.85rem; letter-spacing: 1px; }
+        .timer-val { font-size: 1.3rem; font-weight: bold; display: block; margin-top: 5px; }
+
+        .mood-section { margin-bottom: 35px; text-align: center; width: 100%; }
+        .mood-container { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; }
+        .mood-wrapper { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .mood-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+        .mood-btn { cursor: pointer; font-size: 2.2rem; filter: grayscale(100%); transition: 0.3s; padding: 5px; }
+        .mood-btn.active { filter: grayscale(0%); transform: scale(1.2); }
+        .user-tag { font-size: 0.7rem; font-weight: bold; margin-top: 5px; min-height: 18px; display: flex; gap: 5px; }
+        .tag-e { color: #ec4899; }
+        .tag-m { color: #3b82f6; }
+
+        .main-panel { display: flex; gap: 20px; width: 100%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
+        .column-box { flex: 1; min-width: 340px; background: #1e293b; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; display: flex; flex-direction: column; }
+
+        h3 { margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px; text-align: center; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: white; margin-bottom: 10px; box-sizing: border-box; }
+        .btn { border: none; padding: 10px; color: white; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
+        
+        .scroll-area { flex-grow: 1; max-height: 250px; overflow-y: auto; margin-top: 10px; }
+        .item-card { background: #0f172a; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 0.85rem; border-left: 3px solid #3b82f6; transition: 0.2s; }
+        
+        .spotify-slot { background: #0f172a; border-radius: 12px; padding: 5px; margin-bottom: 10px; border: 1px solid #334155; cursor: pointer; }
+        .slot-label { font-size: 0.65rem; font-weight: bold; margin-left: 5px; margin-bottom: 3px; display: block; }
+        .song-history-item { font-size: 0.75rem; padding: 8px; border-bottom: 1px solid #334155; cursor: pointer; }
+        .admin-trigger { position: fixed; bottom: 0; right: 0; width: 30px; height: 30px; cursor: pointer; opacity: 0; z-index: 9999; }
+        
+        #welcome-text { color: #94a3b8; font-style: italic; margin-bottom: 15px; font-size: 0.9rem; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="identityOverlay">
+        <div class="identity-card">
+            <h2 id="love-title" style="margin-bottom: 10px; color: #94a3b8;">Hoş Geldin</h2>
+            <p id="welcome-text">Lütfen profilini seçerek başla...</p>
+            <button class="identity-btn btn-ecem" onclick="setUser('ecem')">ECEM</button>
+            <button class="identity-btn btn-melih" onclick="setUser('melih')">MELİH</button>
+        </div>
+    </div>
+
+    <div id="step1" class="hidden" style="text-align:center; margin-top:100px;">
+        <h1 style="letter-spacing: 3px;">ecem & melih</h1>
+        <button class="btn" style="width:180px; background:#3b82f6;" onclick="startReset()">SİSTEME GİR</button>
+    </div>
+
+    <div id="terminal" class="hidden"></div>
+
+    <div id="step3" class="hidden" style="width:100%; max-width:1200px;">
+        
+        <div class="birthday-container">
+            <div class="bday-box ecem-special">
+                <h4>🐺 ECEM'İN DOĞUM GÜNÜ 🐺</h4>
+                <span id="ecemTimer" class="timer-val glow-text">-- : -- : -- : --</span>
+            </div>
+            <div class="bday-box melih-box">
+                <h4>🐂 MELİH'İN DOĞUM GÜNÜ 🐂</h4>
+                <span id="melihTimer" class="timer-val" style="color:#3b82f6;">-- : -- : -- : --</span>
+            </div>
+        </div>
+
+        <h2 style="text-align:center; color: #10b981; margin-bottom: 25px; letter-spacing: 2px;">ecem & melih ✅</h2>
+        
+        <div class="mood-section">
+            <div class="mood-container">
+                <div class="mood-wrapper"><span class="mood-label">Kahve</span><span class="mood-btn" id="m-coffee" onclick="selectMood('coffee')">☕</span><div class="user-tag" id="tag-coffee"></div></div>
+                <div class="mood-wrapper"><span class="mood-label">Oyun</span><span class="mood-btn" id="m-game" onclick="selectMood('game')">🎮</span><div class="user-tag" id="tag-game"></div></div>
+                <div class="mood-wrapper"><span class="mood-label">Uykulu</span><span class="mood-btn" id="m-sleep" onclick="selectMood('sleep')">😴</span><div class="user-tag" id="tag-sleep"></div></div>
+                <div class="mood-wrapper"><span class="mood-label">Mutlu</span><span class="mood-btn" id="m-happy" onclick="selectMood('happy')">😊</span><div class="user-tag" id="tag-happy"></div></div>
+                <div class="mood-wrapper"><span class="mood-label">Ders</span><span class="mood-btn" id="m-study" onclick="selectMood('study')">📚</span><div class="user-tag" id="tag-study"></div></div>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="column-box">
+                <h3>🎵 Şarkı Paylaşımı</h3>
+                <div id="streakDisplay" style="background:#334155; color:white; border-radius:20px; padding:4px 12px; font-weight:bold; font-size:0.8rem; align-self:center; margin-bottom:15px;">Güncel Seri 🔥</div>
+                
+                <span class="slot-label" style="color:#ec4899;">ECEM</span>
+                <div id="spotify-ecem" class="spotify-slot" onclick="copySong('ecem')">Henüz şarkı eklenmedi.</div>
+                
+                <span class="slot-label" style="color:#3b82f6;">MELİH</span>
+                <div id="spotify-melih" class="spotify-slot" onclick="copySong('melih')">Henüz şarkı eklenmedi.</div>
+
+                <input type="text" id="songInput" placeholder="Spotify Linki Yapıştır...">
+                <button class="btn" style="background:#1db954;" onclick="updateSong()">Paylaş</button>
+            </div>
+
+            <div class="column-box">
+                <h3>📝 Ortak Notlar</h3>
+                <input type="text" id="noteInput" placeholder="Bir şeyler yaz..." onkeypress="if(event.key==='Enter')sendNote()">
+                <button class="btn" style="background:#3b82f6;" onclick="sendNote()">Gönder</button>
+                <div class="scroll-area" id="logList"></div>
+            </div>
+
+            <div class="column-box">
+                <h3>📍 Planlar / Hedefler</h3>
+                <input type="text" id="bucketInput" placeholder="Yeni bir plan ekle...">
+                <button class="btn" style="background:#64748b;" onclick="addGoal()">Listeye Ekle</button>
+                <div class="scroll-area" id="bucketList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-trigger" onclick="adminLogin()"></div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwoz-GwBKOYwcArf8cf2VktvwYcU0CM4BoOktdkgpHLVqtrDsc8qd7I6_pqgmvnp5X5ig/exec";
+        let selectedUser = localStorage.getItem('active_user') || null;
+        let lastSyncData = "";
+
+        window.onload = function() {
+            if (selectedUser) {
+                document.getElementById('identityOverlay').classList.add('hidden');
+                document.getElementById('step1').classList.remove('hidden');
+            }
+            startBirthdayTimers();
+            setInterval(syncVeri, 300);
+        };
+
+        async function syncVeri() {
+            try {
+                const response = await fetch(SCRIPT_URL + "?action=read");
+                const remoteData = await response.json();
+                const stringified = JSON.stringify(remoteData);
+                if(stringified === lastSyncData) return;
+                lastSyncData = stringified;
+                if(remoteData.notes) { localStorage.setItem('notes', JSON.stringify(remoteData.notes)); displayLogs(); }
+                if(remoteData.goals) { localStorage.setItem('goals', JSON.stringify(remoteData.goals)); displayGoals(); }
+                if(remoteData.moods) {
+                    remoteData.moods.forEach(m => { localStorage.setItem('mood_' + m.user, m.mood); localStorage.setItem('mood_time_' + m.user, m.time); });
+                    updateMoodUI();
+                }
+                if(remoteData.songs) {
+                    remoteData.songs.forEach(s => { localStorage.setItem('song_' + s.user, s.link); localStorage.setItem('song_time_' + s.user, s.time); });
+                    loadSongs();
+                }
+            } catch(e) {}
+        }
+
+        function setUser(name) {
+            selectedUser = name;
+            localStorage.setItem('active_user', name);
+            document.getElementById('identityOverlay').style.display = 'none';
+            document.getElementById('step1').classList.remove('hidden');
+            sendToExcel("Sisteme Giriş Yaptı", "Log");
+        }
+
+        function sendToExcel(mesaj, tip, ekVeri = "") {
+            const entry = { user: selectedUser, tip: tip, mesaj: mesaj, time: new Date().getTime(), ek: ekVeri };
+            fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(entry) });
+        }
+
+        function startReset() {
+            document.getElementById('step1').classList.add('hidden');
+            const term = document.getElementById('terminal');
+            term.classList.remove('hidden');
+            const lines = [
+                "> Bağlantı kuruluyor...",
+                "> Ortak veriler senkronize ediliyor.",
+                "> Notlar ve planlar güncellendi.",
+                "> Bugün nasılsın? Modunu seçmeyi unutma.",
+                "> Sisteme başarıyla giriş yapıldı.",
+                "> Keyifli vakitler..."
+            ];
+            let i = 0;
+            const intv = setInterval(() => {
+                if(i < lines.length) { term.innerHTML += lines[i]+"<br>"; i++; }
+                else { clearInterval(intv); setTimeout(() => { term.classList.add('hidden'); document.getElementById('step3').classList.remove('hidden'); }, 800); }
+            }, 600);
+        }
+
+        function startBirthdayTimers() {
+            function updateTimer(targetMonth, targetDay, elementId) {
+                const now = new Date();
+                let year = now.getFullYear();
+                let bday = new Date(year, targetMonth - 1, targetDay);
+                if (now > bday) bday = new Date(year + 1, targetMonth - 1, targetDay);
+                const diff = bday - now;
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                document.getElementById(elementId).innerText = `${d}g ${h}s ${m}d ${s}s`;
+            }
+            setInterval(() => { updateTimer(8, 12, 'ecemTimer'); updateTimer(6, 7, 'melihTimer'); }, 1000);
+        }
+
+        function selectMood(id) {
+            const time = new Date().getTime();
+            localStorage.setItem('mood_' + selectedUser, id);
+            localStorage.setItem('mood_time_' + selectedUser, time);
+            updateMoodUI();
+            sendToExcel(id, "Mod Güncelleme", time);
+        }
+
+        function updateMoodUI() {
+            document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.user-tag').forEach(tag => tag.innerHTML = "");
+            ['ecem', 'melih'].forEach(u => {
+                const m = localStorage.getItem('mood_' + u);
+                const t = localStorage.getItem('mood_time_' + u);
+                if(m && t && (new Date().getTime() - t < 86400000)) {
+                    const el = document.getElementById('m-' + m);
+                    if(el) el.classList.add('active');
+                    const tag = document.getElementById('tag-' + m);
+                    if(tag) tag.innerHTML += `<span class="${u === 'ecem' ? 'tag-e' : 'tag-m'}">${u}</span>`;
+                }
+            });
+        }
+
+        function updateSong() {
+            const val = document.getElementById('songInput').value;
+            if(!val.includes("track")) return;
+            const now = new Date().getTime();
+            localStorage.setItem('song_' + selectedUser, val);
+            localStorage.setItem('song_time_' + selectedUser, now);
+            loadSongs();
+            document.getElementById('songInput').value = "";
+            sendToExcel(val, "Şarkı", now);
+        }
+
+        function loadSongs() {
+            ['ecem', 'melih'].forEach(u => {
+                const song = localStorage.getItem('song_' + u);
+                if(song) {
+                    const sid = song.split("track/")[1]?.split("?")[0];
+                    if(sid) document.getElementById('spotify-' + u).innerHTML = `<iframe src="https://open.spotify.com/embed/track/${sid}" width="100%" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>`;
+                }
+            });
+            checkStreak();
+        }
+
+        function checkStreak() {
+            const now = new Date().getTime();
+            const eTime = localStorage.getItem('song_time_ecem');
+            const mTime = localStorage.getItem('song_time_melih');
+            if ((eTime && (now - eTime > 86400000)) || (mTime && (now - mTime > 86400000))) { localStorage.setItem('streak', 0); }
+            document.getElementById('streakDisplay').innerText = `Seri: ${localStorage.getItem('streak') || 0} Gün 🔥`;
+        }
+
+        function sendNote() {
+            const val = document.getElementById('noteInput').value;
+            if(!val) return;
+            const entry = { mesaj: val, tarih: new Date().toLocaleString('tr-TR'), user: selectedUser, tip: "Not" };
+            const notes = JSON.parse(localStorage.getItem('notes')) || [];
+            notes.unshift(entry);
+            localStorage.setItem('notes', JSON.stringify(notes));
+            document.getElementById('noteInput').value = "";
+            displayLogs();
+            sendToExcel(val, "Not");
+        }
+
+        function displayLogs() {
+            const logs = JSON.parse(localStorage.getItem('notes')) || [];
+            document.getElementById('logList').innerHTML = logs
+                .map(l => {
+                    const color = l.user === 'ecem' ? '#ec4899' : '#3b82f6';
+                    return `<div class="item-card"><b>${l.mesaj}</b> <span style="color:${color}; font-size:0.75rem;">(${l.user})</span><br><small style="color:#64748b">${l.tarih}</small></div>`;
+                }).join('');
+        }
+
+        function addGoal() {
+            const val = document.getElementById('bucketInput').value;
+            if(!val) return;
+            const entry = { text: val, done: false, user: selectedUser, tip: "Hedef" };
+            const goals = JSON.parse(localStorage.getItem('goals')) || [];
+            goals.push(entry);
+            localStorage.setItem('goals', JSON.stringify(goals));
+            document.getElementById('bucketInput').value = "";
+            displayGoals();
+            sendToExcel(val, "Hedef");
+        }
+
+        function displayGoals() {
+            const goals = JSON.parse(localStorage.getItem('goals')) || [];
+            document.getElementById('bucketList').innerHTML = goals.map((g, i) => {
+                const color = g.user === 'ecem' ? '#ec4899' : '#3b82f6';
+                return `<div class="item-card" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" style="width:auto; margin:0;" ${g.done ? 'checked' : ''} onclick="toggleGoal(${i})">
+                    <span style="${g.done ? 'text-decoration:line-through; opacity:0.5' : ''}">${g.text} <span style="color:${color}; font-size:0.7rem;">(${g.user})</span></span>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleGoal(i) {
+            const goals = JSON.parse(localStorage.getItem('goals'));
+            goals[i].done = !goals[i].done;
+            localStorage.setItem('goals', JSON.stringify(goals));
+            displayGoals();
+            sendToExcel(goals[i].text, "HedefGüncelle", goals[i].done);
+        }
+
+        function copySong(u) {
+            const song = localStorage.getItem('song_' + u);
+            if(song) { navigator.clipboard.writeText(song); alert(`${u.toUpperCase()} şarkısı kopyalandı!`); }
+        }
+
+        function adminLogin() {
+            const id = prompt("Admin ID:");
+            const pw = prompt("Şifre:");
+            if(id === "melih" && pw === "9999") {
+                if(confirm("Excel ve tüm veriler silinsin mi?")) {
+                    localStorage.clear();
+                    fetch(SCRIPT_URL + "?action=clear").then(() => location.reload());
+                }
+            }
+        }
+    </script>
+</body>
+</html>
