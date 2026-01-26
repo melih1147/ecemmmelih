@@ -93,7 +93,7 @@
 
         <h2 style="text-align:center; color: #10b981; margin-bottom: 25px; letter-spacing: 2px;">ecem & melih ✅</h2>
         
-     <div class="mood-section">
+ <div class="mood-section">
     <div class="mood-container">
         <div class="mood-wrapper"><span class="mood-label">Kahve</span><span class="mood-btn" id="m-coffee" onclick="selectMood('coffee')">☕</span><div class="user-tag" id="tag-coffee"></div></div>
         <div class="mood-wrapper"><span class="mood-label">Oyun</span><span class="mood-btn" id="m-game" onclick="selectMood('game')">🎮</span><div class="user-tag" id="tag-game"></div></div>
@@ -109,41 +109,65 @@
 </div>
 
 <script>
-    // 2. JS Kısmı (Sadece bu iki fonksiyonu güncelle, diğerlerine dokunma)
-    function selectMood(id) {
-        const time = new Date().getTime();
-        localStorage.setItem('mood_' + selectedUser, id);
-        localStorage.setItem('mood_time_' + selectedUser, time);
-        updateMoodUI(); // Anında ekranda göster
-        sendToExcel(id, "Mod Güncelleme", time); // Sonra Excel'e yolla
-    }
+// Bu fonksiyonu tamamen bununla değiştir (Modun üzerine yazılmasını engelledik)
+async function syncVeri() {
+    try {
+        const response = await fetch(SCRIPT_URL + "?action=read");
+        const remoteData = await response.json();
+        const stringified = JSON.stringify(remoteData);
+        if(stringified === lastSyncData) return;
+        lastSyncData = stringified;
 
-    function updateMoodUI() {
-        // Ekrandaki tüm aktiflikleri temizle
-        document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.user-tag').forEach(tag => tag.innerHTML = "");
+        if(remoteData.notes) { localStorage.setItem('notes', JSON.stringify(remoteData.notes)); displayLogs(); }
+        if(remoteData.goals) { localStorage.setItem('goals', JSON.stringify(remoteData.goals)); displayGoals(); }
         
-        const simdi = new Date().getTime();
+        // MOD kısmını sync'den çıkardık, böylece Excel boş gelse bile sendeki silinmeyecek.
+        // Sadece diğer kullanıcıdan gelen mod bilgisini Excel'den çekmek istersen burayı güncelleriz.
+        
+        if(remoteData.songs) {
+            remoteData.songs.forEach(s => {
+                localStorage.setItem('song_' + s.user, s.link);
+                localStorage.setItem('song_time_' + s.user, s.time);
+            });
+            loadSongs();
+        }
+    } catch(e) {}
+}
 
-        ['ecem', 'melih'].forEach(u => {
-            const m = localStorage.getItem('mood_' + u);
-            const t = localStorage.getItem('mood_time_' + u);
-            
-            // SADECE 24 saat geçmediyse göster (Excel'den bağımsız çalışır)
-            if (m && t) {
-                if (simdi - t < 86400000) { 
-                    const el = document.getElementById('m-' + m);
-                    if (el) el.classList.add('active');
+// Mod seçme fonksiyonu
+function selectMood(id) {
+    const time = new Date().getTime();
+    localStorage.setItem('mood_' + selectedUser, id);
+    localStorage.setItem('mood_time_' + selectedUser, time);
+    updateMoodUI();
+    sendToExcel(id, "Mod Güncelleme", time);
+}
+
+// Mod arayüzünü güncelleme (24 saat kontrolü burada)
+function updateMoodUI() {
+    document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.user-tag').forEach(tag => tag.innerHTML = "");
+    const simdi = new Date().getTime();
+
+    ['ecem', 'melih'].forEach(u => {
+        const m = localStorage.getItem('mood_' + u);
+        const t = localStorage.getItem('mood_time_' + u);
+        
+        if (m && t) {
+            if (simdi - t < 86400000) { // 24 saat kontrolü
+                const el = document.getElementById('m-' + m);
+                if (el) {
+                    el.classList.add('active');
                     const tag = document.getElementById('tag-' + m);
                     if (tag) tag.innerHTML += `<span class="${u === 'ecem' ? 'tag-e' : 'tag-m'}">${u}</span>`;
-                } else {
-                    // 24 saat dolduysa temizle
-                    localStorage.removeItem('mood_' + u);
-                    localStorage.removeItem('mood_time_' + u);
                 }
+            } else {
+                localStorage.removeItem('mood_' + u);
+                localStorage.removeItem('mood_time_' + u);
             }
-        });
-    }
+        }
+    });
+}
 </script>
 
         <div class="main-panel">
@@ -385,4 +409,5 @@
 </body>
 
 </html>
+
 
