@@ -296,13 +296,43 @@
         }
 
         function checkStreak() {
-            const now = new Date().getTime();
-            const eTime = localStorage.getItem('song_time_ecem');
-            const mTime = localStorage.getItem('song_time_melih');
+            const history = JSON.parse(localStorage.getItem('song_history')) || [];
+            if (history.length === 0) {
+                document.getElementById('streakDisplay').innerText = `Seri: 0 Gün 🔥`;
+                return;
+            }
+
+            const dailyActivity = {};
+            history.forEach(s => {
+                const date = new Date(s.time).toLocaleDateString('tr-TR');
+                if (!dailyActivity[date]) dailyActivity[date] = new Set();
+                dailyActivity[date].add(s.user.toLowerCase());
+            });
+
+            const sortedDates = Object.keys(dailyActivity).sort((a, b) => {
+                const dateA = new Date(a.split('.').reverse().join('-'));
+                const dateB = new Date(b.split('.').reverse().join('-'));
+                return dateB - dateA;
+            });
+
             let streak = 0;
-            if (eTime && mTime) {
-                // Basit bir seri mantığı
-                streak = 1;
+            const today = new Date().toLocaleDateString('tr-TR');
+            const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('tr-TR');
+
+            if (!dailyActivity[today] && !dailyActivity[yesterday]) {
+                streak = 0;
+            } else {
+                for (let i = 0; i < sortedDates.length; i++) {
+                    const dayUsers = dailyActivity[sortedDates[i]];
+                    if (dayUsers.has('ecem') && dayUsers.has('melih')) {
+                        streak++;
+                    } else {
+                        // Eğer en son gün (bugün) ise ve henüz her iki taraf tamamlamamışsa seriyi bozma, 
+                        // ama önceki günlerde eksik varsa durdur.
+                        if (sortedDates[i] === today) continue;
+                        break;
+                    }
+                }
             }
             document.getElementById('streakDisplay').innerText = `Seri: ${streak} Gün 🔥`;
         }
@@ -377,4 +407,6 @@
     </script>
 </body>
 </html>
+</html>
+
 
