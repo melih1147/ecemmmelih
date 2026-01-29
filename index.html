@@ -43,8 +43,8 @@
         .tag-e { color: #ec4899; }
         .tag-m { color: #3b82f6; }
 
-        .main-panel { display: flex; gap: 20px; width: 100%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
-        .column-box { flex: 1; min-width: 340px; background: #1e293b; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; display: flex; flex-direction: column; }
+        .main-panel { display: flex; gap: 20px; width: 100%; max-width: 1400px; justify-content: center; flex-wrap: wrap; }
+        .column-box { flex: 1; min-width: 300px; background: #1e293b; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; display: flex; flex-direction: column; }
 
         h3 { margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px; text-align: center; }
         input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: white; margin-bottom: 10px; box-sizing: border-box; }
@@ -60,11 +60,74 @@
         
         #welcome-text { color: #94a3b8; font-style: italic; margin-bottom: 15px; font-size: 0.9rem; line-height: 1.4; }
 
-        /* HARİTA VE YAY STİLLERİ */
+        .chat-container { display: flex; flex-direction: column; height: 350px; }
+        .chat-messages { flex-grow: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #0f172a; border-radius: 10px; margin-bottom: 10px; }
+        .msg { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 0.85rem; position: relative; }
+        .msg-ecem { align-self: flex-start; background: #ec4899; color: white; border-bottom-left-radius: 2px; }
+        .msg-melih { align-self: flex-end; background: #3b82f6; color: white; border-bottom-right-radius: 2px; }
+        .chat-input-row { display: flex; gap: 5px; position: relative; }
+        .quick-msg-btn { background: #334155; border: none; color: white; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.5rem; }
+        .quick-menu { position: absolute; bottom: 50px; left: 0; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px; display: none; grid-template-columns: repeat(2, 1fr); gap: 5px; z-index: 100; width: 250px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .quick-item { font-size: 0.75rem; padding: 5px; background: #0f172a; border-radius: 5px; cursor: pointer; text-align: center; }
+        .quick-item:hover { background: #334155; }
+
         #map { height: 400px; border-radius: 20px; border: 1px solid #334155; margin-top: 25px; width: 100%; max-width: 1200px; z-index: 1; }
         .beating-heart { display: inline-block; animation: heartBeat 1.2s infinite; font-size: 26px; filter: drop-shadow(0 0 5px red); }
         @keyframes heartBeat { 0% { transform: scale(1); } 15% { transform: scale(1.3); } 30% { transform: scale(1); } }
         .map-label { background: rgba(15, 23, 42, 0.9); border: 1px solid #3b82f6; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-top: 5px; display: inline-block; }
+.love-card-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 20px 0 30px 0;
+}
+
+.love-card {
+    background: linear-gradient(135deg, #db2777 0%, #ec4899 50%, #f472b6 100%);
+    padding: 25px 50px;
+    border-radius: 50px;
+    box-shadow: 0 0 25px rgba(236, 72, 153, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    min-width: 350px;
+    text-align: center;
+    animation: floating 3s infinite ease-in-out;
+}
+
+.love-card:active { transform: scale(0.95); }
+
+.love-content {
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    transition: opacity 0.3s;
+}
+
+.star-decor {
+    position: absolute;
+    color: white;
+    opacity: 0.6;
+    font-size: 14px;
+    animation: blink 2s infinite;
+}
+
+@keyframes floating {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; scale: 1; }
+    50% { opacity: 0.3; scale: 1.3; }
+}
     </style>
 </head>
 <body>
@@ -85,22 +148,45 @@
 
     <div id="terminal" class="hidden"></div>
 
-    <div id="step3" class="hidden" style="width:100%; max-width:1200px;">
+    <div id="step3" class="hidden" style="width:100%; max-width:1400px;">
         
-        <div class="birthday-container">
-            <div class="bday-box ecem-special">
-                <h4>🐺 ECEM'İN DOĞUM GÜNÜ 🐺</h4>
-                <span id="ecemTimer" class="timer-val glow-text">-- : -- : -- : --</span>
-            </div>
-            <div class="bday-box melih-box">
-                <h4>🐂 MELİH'İN DOĞUM GÜNÜ 🐂</h4>
-                <span id="melihTimer" class="timer-val" style="color:#3b82f6;">-- : -- : -- : --</span>
-            </div>
+       <div class="birthday-container">
+    <div class="bday-box ecem-special">
+        <h4>🐺 ECEM'İN DOĞUM GÜNÜ 🐺</h4>
+        <span id="ecemTimer" class="timer-val glow-text">-- : -- : -- : --</span>
+        <div id="weather-ecem" class="weather-box">
+            <div id="weather-ecem-main" style="font-weight: bold; color: #ec4899;"></div>
+            <div id="weather-ecem-desc" style="color: #94a3b8; font-size: 0.7rem;"></div>
         </div>
+    </div>
 
-        <h2 style="text-align:center; color: #10b981; margin-bottom: 25px; letter-spacing: 2px;">ecem & melih ✅</h2>
-        
-        <div class="mood-section">
+    <div style="display: flex; align-items: center; justify-content: center; min-width: 100px;">
+        <img src="BURAYA_GTIHUB_RESIM_LINKI" alt="Amblem" style="height: 80px; width: auto; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));">
+    </div>
+
+    <div class="bday-box melih-box">
+        <h4>🐂 MELİH'İN DOĞUM GÜNÜ 🐂</h4>
+        <span id="melihTimer" class="timer-val" style="color:#3b82f6;">-- : -- : -- : --</span>
+        <div id="weather-melih" class="weather-box">
+            <div id="weather-melih-main" style="font-weight: bold; color: #3b82f6;"></div>
+            <div id="weather-melih-desc" style="color: #94a3b8; font-size: 0.7rem;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="love-card-wrapper">
+    <div class="love-card" onclick="showLoveWord()">
+        <div class="love-content">
+            <span class="sparkle">✨</span>
+            <span id="love-text-display">Sana Bir Mesajım Var... (Tıkla)</span>
+            <span class="sparkle">✨</span>
+        </div>
+        <div class="star-decor" style="top:10%; left:5%;">★</div>
+        <div class="star-decor" style="bottom:10%; right:5%;">★</div>
+    </div>
+</div>
+
+<div class="mood-section">
             <div class="mood-container">
                 <div class="mood-wrapper"><span class="mood-label">Kahve</span><span class="mood-btn" id="m-coffee" onclick="selectMood('coffee')">☕</span><div class="user-tag" id="tag-coffee"></div></div>
                 <div class="mood-wrapper"><span class="mood-label">Oyun</span><span class="mood-btn" id="m-game" onclick="selectMood('game')">🎮</span><div class="user-tag" id="tag-game"></div></div>
@@ -118,19 +204,48 @@
         <div class="main-panel">
             <div class="column-box">
                 <h3>🎵 Şarkı Paylaşımı</h3>
-                <div id="streakDisplay" style="background:#334155; color:white; border-radius:20px; padding:4px 12px; font-weight:bold; font-size:0.8rem; align-self:center; margin-bottom:15px;">Güncel Seri 🔥</div>
-                
+                <div id="streakDisplay" style="background:#334155; color:white; border-radius:20px; padding:4px 12px; font-weight:bold; font-size:0.8rem; align-self:center; margin-bottom:15px;">Güncel Seri 🔥 3</div>
                 <span class="slot-label" style="color:#ec4899;">ECEM</span>
                 <div id="spotify-ecem" class="spotify-slot" onclick="copySong('ecem')">Henüz şarkı eklenmedi.</div>
-                
                 <span class="slot-label" style="color:#3b82f6;">MELİH</span>
                 <div id="spotify-melih" class="spotify-slot" onclick="copySong('melih')">Henüz şarkı eklenmedi.</div>
-
                 <input type="text" id="songInput" placeholder="Spotify Linki Yapıştır...">
                 <button class="btn" style="background:#1db954;" onclick="updateSong()">Paylaş</button>
+                <div class="scroll-area" id="songHistory" style="max-height: 100px;"></div>
+            </div>
 
-                <h4 style="margin-top:20px; font-size:0.8rem; color:#94a3b8;">Geçmiş Şarkılar</h4>
-                <div class="scroll-area" id="songHistory" style="max-height: 150px;"></div>
+            <div class="column-box">
+                <h3>💬 Sohbet</h3>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatBox"></div>
+                    <div class="chat-input-row">
+                        <button class="quick-msg-btn" onclick="toggleQuickMenu()">+</button>
+                        <div class="quick-menu" id="quickMenu">
+                            <div class="quick-item" onclick="sendQuick('Günaydınn ☀️')">Günaydın ☀️</div>
+                            <div class="quick-item" onclick="sendQuick('İyi geceler ✨')">İyi geceler ✨</div>
+                            <div class="quick-item" onclick="sendQuick('Naber? 😊')">Naber? 😊</div>
+                            <div class="quick-item" onclick="sendQuick('Seni seviyorum ❤️')">Seni seviyorum ❤️</div>
+                            <div class="quick-item" onclick="sendQuick('Özledim.. 🥺')">Özledim.. 🥺</div>
+                            <div class="quick-item" onclick="sendQuick('Müsait misin?')">Müsait misin?</div>
+                            <div class="quick-item" onclick="sendQuick('Arayayım mı? 📞')">Arayayım mı? 📞</div>
+                            <div class="quick-item" onclick="sendQuick('Yemek yiyorum 🍕')">Yemek yiyorum 🍕</div>
+                            <div class="quick-item" onclick="sendQuick('Dışarı çıkıyorum ☁️')">Dışarı çıkıyorum ☁️</div>
+                            <div class="quick-item" onclick="sendQuick('Eve geldim ✅')">Eve geldim ✅</div>
+                            <div class="quick-item" onclick="sendQuick('Uykum geldi 😴')">Uykum geldi 😴</div>
+                            <div class="quick-item" onclick="sendQuick('Harika! 🌟')">Harika! 🌟</div>
+                            <div class="quick-item" onclick="sendQuick('Canım sıkıldı 😫')">Canım sıkıldı 😫</div>
+                            <div class="quick-item" onclick="sendQuick('Ders çalışıyorum 📚')">Ders çalışıyorum 📚</div>
+                            <div class="quick-item" onclick="sendQuick('Oyun oynuyorum 🎮')">Oyun oynuyorum 🎮</div>
+                            <div class="quick-item" onclick="sendQuick('Şarkı çok iyi! 🎧')">Şarkı çok iyi! 🎧</div>
+                            <div class="quick-item" onclick="sendQuick('Birazdan gelirim')">Birazdan gelirim</div>
+                            <div class="quick-item" onclick="sendQuick('Dikkat et kendine ❤️')">Dikkat et ❤️</div>
+                            <div class="quick-item" onclick="sendQuick('Ellerine sağlık 😋')">Eline sağlık 😋</div>
+                            <div class="quick-item" onclick="sendQuick('Görüşürüz 👋')">Görüşürüz 👋</div>
+                        </div>
+                        <input type="text" id="chatInput" placeholder="Mesaj yaz..." style="margin-bottom:0;" onkeypress="if(event.key==='Enter')sendChatMessage()">
+                        <button class="btn" style="background:#10b981; width:60px;" onclick="sendChatMessage()">></button>
+                    </div>
+                </div>
             </div>
 
             <div class="column-box">
@@ -153,7 +268,6 @@
 
     <div class="admin-trigger" onclick="adminLogin()"></div>
 
-    <script src="https://cdn.jsdelivr.net/gh/elfalem/Leaflet.curve/leaflet.curve.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
@@ -163,56 +277,158 @@
         let mainMap = null;
 
         window.onload = function() {
+    
             if (selectedUser) {
                 document.getElementById('identityOverlay').classList.add('hidden');
                 document.getElementById('step1').classList.remove('hidden');
+                // Sayfa açılışında her şeyi yükle
+                displayChats();
+                displayLogs();
+                displayGoals();
+                loadSongs();
+                displaySongHistory();
+                updateMoodUI();
+                updateStreakUI();
             }
             startBirthdayTimers();
-            setInterval(syncVeri, 300);
-            updateMoodUI(); 
+            setInterval(syncVeri, 1000); // 1 saniyede bir kontrol et
         };
+async function updateWeather() {
+    const locations = {
+        ecem: { lat: 38.2312, lon: 27.9719, prefix: 'weather-ecem' },
+        melih: { lat: 40.1885, lon: 29.0610, prefix: 'weather-melih' }
+    };
+
+    const weatherCodes = {
+        0: { desc: "Açık Gökyüzü", icon: "☀️" },
+        1: { desc: "Çoğunlukla Açık", icon: "🌤️" },
+        2: { desc: "Parçalı Bulutlu", icon: "⛅" },
+        3: { desc: "Bulutlu", icon: "☁️" },
+        45: { desc: "Sisli", icon: "🌫️" },
+        51: { desc: "Hafif Çiseleme", icon: "🌦️" },
+        61: { desc: "Hafif Yağmurlu", icon: "🌧️" },
+        63: { desc: "Yağmurlu", icon: "🌧️" },
+        71: { desc: "Hafif Karlı", icon: "❄️" },
+        95: { desc: "Fırtına", icon: "⚡" }
+    };
+
+    for (let person in locations) {
+        try {
+            const loc = locations[person];
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current_weather=true&timezone=auto`);
+            const data = await res.json();
+            
+            const temp = Math.round(data.current_weather.temperature);
+            const code = data.current_weather.weathercode;
+            const info = weatherCodes[code] || { desc: "Bulutlu", icon: "☁️" };
+
+            // Derece ve İkon (Üst Satır)
+            document.getElementById(`${loc.prefix}-main`).innerHTML = `${info.icon} ${temp}°C`;
+            // Hava Durumu Metni (Alt Satır)
+            document.getElementById(`${loc.prefix}-desc`).innerHTML = info.desc;
+            
+        } catch (e) {
+            console.log("Hava durumu hatası");
+        }
+    }
+}
+function showLoveWord() {
+    const words = [
+        "Sen benim başıma gelen en güzel şeysin. ✨", "Kalbimin tek sahibi sensin. ❤️", "Gözlerinde dünyayı görüyorum. 🌍",
+        "Seni sevmek nefes almak gibi. 🌬️", "İyi ki varsın sevgilim. 🥰", "Ruhumun eşi sensin. 💍", "Sen benim mucizemsin. 🪄",
+        "Gülüşün dünyaya güneş gibi doğuyor. ☀️", "Sen benim evimsin. 🏡", "Hayatımın anlamı sensin. 🎯",
+        "Seni her gün bir öncekinden daha çok seviyorum. 📈", "Seninle geçen her saniye bir hazine. 💎",
+        "Ellerini hiç bırakmak istemiyorum. 🤝", "Sen benim şansımsın. 🍀", "Dünyadaki en güzel manzara senin yüzün. 🖼️",
+        "Sen benim en tatlı uykumsun. 💤", "Kalbimin her köşesi seninle dolu. 💖", "Seninle yaşlanmak tek hayalim. 👴👵",
+        "Bakışlarında kaybolmak istiyorum. 🌊", "Sen benim huzurumsun. 🧘", "Aşkımız sonsuz olsun. ♾️",
+        "Seninle her yer cennet bana. 🏝️", "Kalbim sadece senin için atıyor. 💓", "Sesin ruhuma en iyi gelen ilaç. 💊",
+        "Sen benim gökyüzündeki en parlak yıldızımsın. ⭐", "Varlığın bana güç veriyor. 💪", "Sana olan sevgim kelimelere sığmıyor. 📚",
+        "Sen benim en güzel rüyamın gerçeğe dönüşmüş halisin. 💭", "Aşkın beni her gün yeniden doğuruyor. 🐣",
+        "Seni düşünmeden geçen bir saniyem bile yok. ⏳", "Hayatımın tüm renkleri seninle geldi. 🌈",
+        "Sen benim kahramanımsın. 🦸‍♂️", "Yanında olduğum her an kendimi buluyorum. 🧩", "Aşkımız bir masal gibi. 📖",
+        "Sana sarılmak dünyadaki en güvenli yer. 🫂", "Kalbim seninle atıyor, seninle duracak. 🛑",
+        "Sen benim sonsuzluğumsun. 🌌", "Güzelliğin karşısında büyüleniyorum. 🤩", "Seninle her zorluk bir oyun gibi. 🎮",
+        "Sen benim dualarımın cevabısın. 🙏", "Aşkın içimde bir kor gibi yanıyor. 🔥", "Sen benim ruh eşimsin. 🔥",
+        "Dünyanın en şanslı insanıyım çünkü seninleyim. 🎰", "Sen benim yaşama sevincimsin. 🌱",
+        "Her sabah seninle uyanma fikri bile huzur verici. ☕", "Sen benim kalbimdeki en derin izsin. 👣",
+        "Seni sevmekten asla vazgeçmeyeceğim. 🛡️", "Sen benim bir tanemsin. ☝️", "Hayatıma dokunduğun an her şey güzelleşti. 🪄",
+        "Seninle her anım bir ömre bedel. ⏳", "Aşkın benim pusulam. 🧭", "Sen benim her şeyimsin. 🗝️",
+        "Gözlerindeki ışık yolumu aydınlatıyor. 💡", "Seninle gülmek en büyük mutluluğum. 😂",
+        "Sen benim en güzel şiirimsin. ✍️", "Kalbimin ritmini değiştiren tek sensin. 🥁",
+        "Seni sevmek hayatımın en doğru kararı. ✅", "Sen benim nefesimsin. 💨", "Seninle olmak bir rüya gibi. ☁️",
+        "Hayallerimin ötesindeki sevgilimsin. 🚀", "Aşkın bana her şeyi unutturuyor. 🧠",
+        "Sen benim bitmeyen şarkımsın. 🎶", "Seninle geçen ömür en büyük ödülüm. 🏆",
+        "Sen benim dünyamsın. 🗺️", "Gülüşünde huzur bulduğum tek insansın. 😊", "Sana olan aşkım her an katlanıyor. 📂",
+        "Sen benim en kıymetlimsin. 👑", "Hayatımın en güzel hikayesi seninle başladı. 🎬",
+        "Sen benim ruhumun aynasısın. 🪞", "Seni her halinle seviyorum. 💯", "Sen benim canımsın. 🩸",
+        "Yanında zaman dursun istiyorum. ⏱️", "Aşkın kalbimde çiçekler açtırıyor. 🌸",
+        "Sen benim sol yanım, en güzel yanımsın. 👈", "Dünyayı seninle keşfetmek istiyorum. 🌍",
+        "Sen benim en büyük aşkımsın. 🐳", "Seni düşünmek bile içimi ısıtıyor. 🧣",
+        "Sen benim cennetimsin. 👼", "Kalbimdeki yerin asla dolmayacak. 🕳️", "Sen benim hayat ışığımsın. 🔦",
+        "Seni sevmek bir ayrıcalık. 🎫", "Seninle her şey mümkün. 🌟", "Sen benim can yoldaşımsın. 👯",
+        "Aşkın beni tamamlıyor. 🌓", "Sen benim en güzel gerçeğimsin. 🦄", "Seninle bir ömür yetmez bana. ♾️",
+        "Sen benim tek gerçeğimsin. 📍", "Aşkınla dünyam değişti. 🌏", "Sen benim baharımsın. 🌷",
+        "Seni sevmek en güzel duygu. 🧸", "Sen benim hayatımın başrolüsün. 🎭", "Seninle her şey daha anlamlı. 🕯️",
+        "Aşkın içimi titretiyor. 💓", "Sen benim her halimsin. ☯️", "Seni çok seviyorum. 💞",
+        "Sen benim ömrümsün. 🕰️", "Seninle her gün yeni bir macera. 🛶", "Aşkımız ölümsüz olsun. 🧛‍♂️❤️",
+        "Sen benim kalbimdir. 🫀", "Seni seviyorum, hem de çok. 💖✨"
+    ];
+
+    const randomIndex = Math.floor(Math.random() * words.length);
+    const display = document.getElementById('love-text-display');
+    
+    // Mesajı Kutuda Göster
+    if(display) {
+        display.style.opacity = '0';
+        setTimeout(() => {
+            display.innerText = words[randomIndex];
+            display.style.opacity = '1';
+        }, 200);
+    }
+
+    // KONFETİLERİ PATLAT
+    createConfetti();
+}
+
+function createConfetti() {
+    const colors = ['#ec4899', '#db2777', '#f472b6', '#ffffff', '#ffd700'];
+    const shapes = ['❤️', '✨', '💖', '⭐', '🌸'];
+
+    for (let i = 0; i < 35; i++) {
+        const confetti = document.createElement('div');
+        confetti.innerText = shapes[Math.floor(Math.random() * shapes.length)];
+        confetti.style.position = 'fixed';
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.top = '-5vh';
+        confetti.style.color = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.fontSize = (Math.random() * 15 + 15) + 'px';
+        confetti.style.zIndex = '10001';
+        confetti.style.pointerEvents = 'none';
+        confetti.style.transition = `transform ${Math.random() * 2 + 3}s linear, opacity ${Math.random() * 2 + 3}s linear`;
+        
+        document.body.appendChild(confetti);
+
+        setTimeout(() => {
+            confetti.style.transform = `translateY(110vh) translateX(${Math.random() * 200 - 100}px) rotate(${Math.random() * 360}deg)`;
+            confetti.style.opacity = '0';
+        }, 10);
+
+        setTimeout(() => { confetti.remove(); }, 5000);
+    }
+}
 
         function initMap() {
             if (mainMap) return;
             mainMap = L.map('map', { zoomControl: false }).setView([39.2, 28.5], 7);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(mainMap);
-            
             const bursa = [40.1885, 29.0610];
             const odemis = [38.2312, 27.9719]; 
-            
             L.marker(bursa).addTo(mainMap).bindPopup('<b>Melih</b><br>Bursa 🐂');
             L.marker(odemis).addTo(mainMap).bindPopup('<b>Ecem</b><br>Ödemiş 🐺');
-            
-            // Kavisli Mavi Yay (Curve)
-            // Açı vermek için orta noktayı biraz yukarı ve yana kaydırıyoruz
-            const lat1 = bursa[0], lon1 = bursa[1];
-            const lat2 = odemis[0], lon2 = odemis[1];
-            const midLat = (lat1 + lat2) / 2 + 0.5; // Yayı yukarı doğru büker
-            const midLon = (lon1 + lon2) / 2 + 0.2; // Hafif bir açı verir
-
-            const pathData = [
-                'M', bursa,
-                'Q', [midLat, midLon],
-                odemis
-            ];
-
-            // Yay çizimi (Mavi renkli)
-            L.polyline([bursa, [midLat, midLon], odemis], {
-                color: '#3b82f6',
-                weight: 3,
-                opacity: 0.7,
-                smoothFactor: 1,
-                dashArray: '10, 10'
-            }).addTo(mainMap);
-
-            // Merkeze Atan Kırmızı Kalp ve 369 KM Yazısı
-            const heartIcon = L.divIcon({
-                className: 'custom-div-icon',
-                html: `<div style="text-align: center;"><span class="beating-heart">❤️</span><br><span class="map-label">369 KM</span></div>`,
-                iconSize: [80, 60],
-                iconAnchor: [40, 30]
-            });
-
+            const midLat = (bursa[0] + odemis[0]) / 2 + 0.5;
+            const midLon = (bursa[1] + odemis[1]) / 2 + 0.2;
+            L.polyline([bursa, [midLat, midLon], odemis], { color: '#3b82f6', weight: 3, opacity: 0.7, dashArray: '10, 10' }).addTo(mainMap);
+            const heartIcon = L.divIcon({ className: 'custom-div-icon', html: `<div style="text-align: center;"><span class="beating-heart">❤️</span><br><span class="map-label">369 KM</span></div>`, iconSize: [80, 60], iconAnchor: [40, 30] });
             L.marker([midLat, midLon], { icon: heartIcon }).addTo(mainMap);
         }
 
@@ -223,29 +439,77 @@
                 const stringified = JSON.stringify(remoteData);
                 if(stringified === lastSyncData) return;
                 lastSyncData = stringified;
-                if(remoteData.notes) { localStorage.setItem('notes', JSON.stringify(remoteData.notes)); displayLogs(); }
-                if(remoteData.goals) { localStorage.setItem('goals', JSON.stringify(remoteData.goals)); displayGoals(); }
                 
-                if(remoteData.moods && remoteData.moods.length > 0) {
+                // NOTLAR GÜNCELLE
+                if(remoteData.notes) { 
+                    localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
+                    displayLogs(); 
+                }
+                // PLANLAR GÜNCELLE
+                if(remoteData.goals) { 
+                    localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
+                    displayGoals(); 
+                }
+                // SOHBET GÜNCELLE
+                if(remoteData.chats) { 
+                    localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
+                    displayChats(); 
+                }
+                // ŞARKILAR GÜNCELLE
+                if(remoteData.songs) {
+                    localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
+                    remoteData.songs.forEach(s => { localStorage.setItem('song_' + s.user, s.link); });
+                    loadSongs();
+                    displaySongHistory();
+                }
+                // MODLAR GÜNCELLE (24 Saat Korumalı)
+                if(remoteData.moods) {
+                    const now = new Date().getTime();
                     remoteData.moods.forEach(m => { 
-                        if(m.mood) {
-                           localStorage.setItem('mood_' + m.user, m.mood); 
-                           localStorage.setItem('mood_time_' + m.user, m.time); 
+                        const localTime = localStorage.getItem('mood_time_' + m.user) || 0;
+                        if(m.mood && m.time >= localTime) { 
+                            localStorage.setItem('mood_' + m.user, m.mood); 
+                            localStorage.setItem('mood_time_' + m.user, m.time); 
                         }
                     });
                     updateMoodUI();
                 }
+            } catch(e) { console.log("Senkronizasyon hatası:", e); }
+        }
 
-                if(remoteData.songs) {
-                    localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
-                    remoteData.songs.forEach(s => { 
-                        localStorage.setItem('song_' + s.user, s.link); 
-                        localStorage.setItem('song_time_' + s.user, s.time); 
-                    });
-                    loadSongs();
-                    displaySongHistory();
-                }
-            } catch(e) {}
+        function toggleQuickMenu() {
+            const menu = document.getElementById('quickMenu');
+            menu.style.display = menu.style.display === 'grid' ? 'none' : 'grid';
+        }
+
+        function sendQuick(msg) {
+            document.getElementById('chatInput').value = msg;
+            sendChatMessage();
+            toggleQuickMenu();
+        }
+
+        function sendChatMessage() {
+            const val = document.getElementById('chatInput').value;
+            if(!val) return;
+            const entry = { msg: val, user: selectedUser, time: new Date().getTime() };
+            const chats = JSON.parse(localStorage.getItem('chats')) || [];
+            chats.push(entry);
+            localStorage.setItem('chats', JSON.stringify(chats));
+            document.getElementById('chatInput').value = "";
+            displayChats();
+            sendToExcel(val, "Chat");
+        }
+
+        function displayChats() {
+            const chats = JSON.parse(localStorage.getItem('chats')) || [];
+            const chatBox = document.getElementById('chatBox');
+            if(!chatBox) return;
+            chatBox.innerHTML = chats.map(c => `
+                <div class="msg msg-${c.user}">
+                    ${c.msg}
+                </div>
+            `).join('');
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
 
         function setUser(name) {
@@ -254,6 +518,10 @@
             document.getElementById('identityOverlay').style.display = 'none';
             document.getElementById('step1').classList.remove('hidden');
             sendToExcel("Sisteme Giriş Yaptı", "Log");
+            displayChats();
+            displayLogs();
+            displayGoals();
+            loadSongs();
         }
 
         function sendToExcel(mesaj, tip, ekVeri = "") {
@@ -265,39 +533,27 @@
             document.getElementById('step1').classList.add('hidden');
             const term = document.getElementById('terminal');
             term.classList.remove('hidden');
-            const lines = [
-                "> Bağlantı kuruluyor...",
-                "> Ortak veriler senkronize ediliyor.",
-                "> Notlar ve planlar güncellendi.",
-                "> Bugün nasılsın? Modunu seçmeyi unutma.",
-                "> Sisteme başarıyla giriş yapıldı.",
-                "> Keyifli vakitler..."
-            ];
+            const lines = ["> Bağlantı kuruluyor...", "> Veriler senkronize ediliyor...", "> Sistem hazır."];
             let i = 0;
             const intv = setInterval(() => {
                 if(i < lines.length) { term.innerHTML += lines[i]+"<br>"; i++; }
-                else { 
-                    clearInterval(intv); 
-                    setTimeout(() => { 
-                        term.classList.add('hidden'); 
-                        document.getElementById('step3').classList.remove('hidden'); 
-                        initMap();
-                    }, 800); 
-                }
+                else { clearInterval(intv); setTimeout(() => { term.classList.add('hidden'); document.getElementById('step3').classList.remove('hidden'); initMap(); }, 800); }
             }, 600);
         }
 
         function startBirthdayTimers() {
+        // 225. satır civarı
+updateWeather(); 
+setInterval(updateWeather, 900000); // 15 dakikada bir otomatik günceller
             function updateTimer(targetMonth, targetDay, elementId) {
-                const now = new Date();
-                let year = now.getFullYear();
+                const now = new Date(); let year = now.getFullYear();
                 let bday = new Date(year, targetMonth - 1, targetDay);
                 if (now > bday) bday = new Date(year + 1, targetMonth - 1, targetDay);
                 const diff = bday - now;
-                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff % 86400000) / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
                 document.getElementById(elementId).innerText = `${d}g ${h}s ${m}d ${s}s`;
             }
             setInterval(() => { updateTimer(8, 12, 'ecemTimer'); updateTimer(6, 7, 'melihTimer'); }, 1000);
@@ -315,88 +571,65 @@
             document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.user-tag').forEach(tag => tag.innerHTML = "");
             const now = new Date().getTime();
-
+            const limit = 86400000;
             ['ecem', 'melih'].forEach(u => {
                 const m = localStorage.getItem('mood_' + u);
                 const t = localStorage.getItem('mood_time_' + u);
-                if(m && t && (now - t < 86400000)) { 
-                    const el = document.getElementById('m-' + m);
-                    if(el) el.classList.add('active');
+                if(m && t && (now - t < limit)) { 
+                    document.getElementById('m-' + m)?.classList.add('active');
                     const tag = document.getElementById('tag-' + m);
                     if(tag) tag.innerHTML += `<span class="${u === 'ecem' ? 'tag-e' : 'tag-m'}">${u}</span>`;
                 }
             });
         }
 
+        function updateStreakUI() {
+            let streak = parseInt(localStorage.getItem('song_streak')) || 3;
+            document.getElementById('streakDisplay').innerText = `Güncel Seri 🔥 ${streak}`;
+        }
+
         function updateSong() {
             const val = document.getElementById('songInput').value;
             if(!val.includes("track")) return;
-            const now = new Date().getTime();
+            
+            const now = new Date();
+            const todayStr = now.toDateString(); 
+            const lastUpdateDate = localStorage.getItem('last_song_date');
+            let streak = parseInt(localStorage.getItem('song_streak')) || 3;
+
+            if (lastUpdateDate !== todayStr) {
+                streak++;
+                localStorage.setItem('song_streak', streak);
+                localStorage.setItem('last_song_date', todayStr);
+                updateStreakUI();
+            }
+
             localStorage.setItem('song_' + selectedUser, val);
-            localStorage.setItem('song_time_' + selectedUser, now);
             loadSongs();
             document.getElementById('songInput').value = "";
-            sendToExcel(val, "Şarkı", now);
+            sendToExcel(val, "Şarkı", streak);
         }
 
         function loadSongs() {
             ['ecem', 'melih'].forEach(u => {
                 const song = localStorage.getItem('song_' + u);
-                if(song) {
-                    const sid = song.split("track/")[1]?.split("?")[0];
-                    if(sid) document.getElementById('spotify-' + u).innerHTML = `<iframe src="https://open.spotify.com/embed/track/${sid}" width="100%" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>`;
+                const slot = document.getElementById('spotify-' + u);
+                if(song && slot) {
+                    const parts = song.split("track/");
+                    if(parts.length > 1) {
+                        const sid = parts[1].split("?")[0];
+                        slot.innerHTML = `<iframe src="https://open.spotify.com/embed/track/${sid}" width="100%" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>`;
+                    }
                 }
             });
-            checkStreak();
         }
 
         function displaySongHistory() {
             const history = JSON.parse(localStorage.getItem('song_history')) || [];
-            document.getElementById('songHistory').innerHTML = history.slice(0, 10).map(s => `
-                <div class="song-history-item" onclick="window.open('${s.link}', '_blank')">
-                    🎵 ${s.user.toUpperCase()} paylaştı...
-                </div>
-            `).join('');
-        }
-
-        function checkStreak() {
-            const history = JSON.parse(localStorage.getItem('song_history')) || [];
-            if (history.length === 0) {
-                document.getElementById('streakDisplay').innerText = `Seri: 0 Gün 🔥`;
-                return;
+            const container = document.getElementById('songHistory');
+            if(container) {
+                container.innerHTML = history.slice(0, 5).map(s => `<div class="song-history-item" onclick="window.open('${s.link}', '_blank')">🎵 ${s.user.toUpperCase()} paylaştı...</div>`).join('');
             }
-
-            const dailyActivity = {};
-            history.forEach(s => {
-                const date = new Date(s.time).toLocaleDateString('tr-TR');
-                if (!dailyActivity[date]) dailyActivity[date] = new Set();
-                dailyActivity[date].add(s.user.toLowerCase());
-            });
-
-            const sortedDates = Object.keys(dailyActivity).sort((a, b) => {
-                const dateA = new Date(a.split('.').reverse().join('-'));
-                const dateB = new Date(b.split('.').reverse().join('-'));
-                return dateB - dateA;
-            });
-
-            let streak = 0;
-            const today = new Date().toLocaleDateString('tr-TR');
-            const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('tr-TR');
-
-            if (!dailyActivity[today] && !dailyActivity[yesterday]) {
-                streak = 0;
-            } else {
-                for (let i = 0; i < sortedDates.length; i++) {
-                    const dayUsers = dailyActivity[sortedDates[i]];
-                    if (dayUsers.has('ecem') && dayUsers.has('melih')) {
-                        streak++;
-                    } else {
-                        if (sortedDates[i] === today) continue;
-                        break;
-                    }
-                }
-            }
-            document.getElementById('streakDisplay').innerText = `Seri: ${streak} Gün 🔥`;
         }
 
         function sendNote() {
@@ -413,17 +646,16 @@
 
         function displayLogs() {
             const logs = JSON.parse(localStorage.getItem('notes')) || [];
-            document.getElementById('logList').innerHTML = logs
-                .map(l => {
-                    const color = l.user === 'ecem' ? '#ec4899' : '#3b82f6';
-                    return `<div class="item-card"><b>${l.mesaj}</b> <span style="color:${color}; font-size:0.75rem;">(${l.user})</span><br><small style="color:#64748b">${l.tarih}</small></div>`;
-                }).join('');
+            const logList = document.getElementById('logList');
+            if(logList) {
+                logList.innerHTML = logs.map(l => `<div class="item-card"><b>${l.mesaj}</b> <span style="color:${l.user === 'ecem' ? '#ec4899' : '#3b82f6'}; font-size:0.75rem;">(${l.user})</span></div>`).join('');
+            }
         }
 
         function addGoal() {
             const val = document.getElementById('bucketInput').value;
             if(!val) return;
-            const entry = { text: val, done: false, user: selectedUser, tip: "Hedef" };
+            const entry = { text: val, done: false, user: selectedUser };
             const goals = JSON.parse(localStorage.getItem('goals')) || [];
             goals.push(entry);
             localStorage.setItem('goals', JSON.stringify(goals));
@@ -434,13 +666,10 @@
 
         function displayGoals() {
             const goals = JSON.parse(localStorage.getItem('goals')) || [];
-            document.getElementById('bucketList').innerHTML = goals.map((g, i) => {
-                const color = g.user === 'ecem' ? '#ec4899' : '#3b82f6';
-                return `<div class="item-card" style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" style="width:auto; margin:0;" ${g.done ? 'checked' : ''} onclick="toggleGoal(${i})">
-                    <span style="${g.done ? 'text-decoration:line-through; opacity:0.5' : ''}">${g.text} <span style="color:${color}; font-size:0.7rem;">(${g.user})</span></span>
-                </div>`;
-            }).join('');
+            const bucketList = document.getElementById('bucketList');
+            if(bucketList) {
+                bucketList.innerHTML = goals.map((g, i) => `<div class="item-card"><input type="checkbox" ${g.done ? 'checked' : ''} onclick="toggleGoal(${i})"> ${g.text}</div>`).join('');
+            }
         }
 
         function toggleGoal(i) {
@@ -448,24 +677,114 @@
             goals[i].done = !goals[i].done;
             localStorage.setItem('goals', JSON.stringify(goals));
             displayGoals();
-            sendToExcel(goals[i].text, "HedefGüncelle", goals[i].done);
+            sendToExcel(goals[i].text, "Hedef-Tamamla", goals[i].done);
         }
 
         function copySong(u) {
             const song = localStorage.getItem('song_' + u);
-            if(song) { navigator.clipboard.writeText(song); alert(`${u.toUpperCase()} şarkısı kopyalandı!`); }
+            if(song) { navigator.clipboard.writeText(song); alert(`Kopyalandı!`); }
         }
 
-        function adminLogin() {
+       function adminLogin() {
             const id = prompt("Admin ID:");
             const pw = prompt("Şifre:");
             if(id === "melih" && pw === "9999") {
-                if(confirm("Excel ve tüm veriler silinsin mi?")) {
-                    localStorage.clear();
-                    fetch(SCRIPT_URL + "?action=clear").then(() => location.reload());
+                const action = prompt("İşlem seçin:\n1: Silme modunu aç/kapat\n2: Tüm verileri sıfırla");
+                
+                if(action === "1") {
+                    document.body.classList.toggle('admin-active');
+                    const isActive = document.body.classList.contains('admin-active');
+                    alert(isActive ? "Silme modu aktif!" : "Silme modu kapatıldı.");
+                    // Takılmayı önlemek için arayüzü zorla tazele
+                    if(typeof displayChats === "function") displayChats();
+                    if(typeof displayLogs === "function") displayLogs();
+                    if(typeof displayGoals === "function") displayGoals();
+                } else if(action === "2") {
+                    if(confirm("Tüm veriler silinsin mi?")) { 
+                        localStorage.clear(); 
+                        location.reload(); 
+                    }
                 }
+            } else {
+                alert("Hatalı giriş!");
             }
         }
+
+        // Hızlı Silme Fonksiyonu (Takılma yapmaz)
+        function deleteItem(storageKey, index, refreshFunc) {
+            let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+            data.splice(index, 1);
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            
+            // Excel'e sessizce bildir
+            if(typeof sendToExcel === "function") {
+                sendToExcel("Öğe Silindi", "Admin-Silme", storageKey);
+            }
+            
+            // Ekranı anında güncelle
+            refreshFunc();
+        }
+
+        // Sohbetleri butonla güncelle
+        const originalDisplayChats = window.displayChats;
+        window.displayChats = function() {
+            if(typeof originalDisplayChats === "function") originalDisplayChats();
+            if(document.body.classList.contains('admin-active')) {
+                document.querySelectorAll('.msg').forEach((msg, i) => {
+                    if(!msg.querySelector('.delete-btn')) {
+                        const btn = document.createElement('button');
+                        btn.innerHTML = '×';
+                        btn.style = "background:#ef4444; color:white; border:none; border-radius:4px; padding:0 5px; cursor:pointer; float:right; margin-left:5px; font-weight:bold; line-height:1;";
+                        btn.onclick = (e) => { 
+                            e.preventDefault();
+                            e.stopPropagation(); 
+                            deleteItem('chats', i, displayChats); 
+                        };
+                        msg.appendChild(btn);
+                    }
+                });
+            }
+        };
+
+        // Notları butonla güncelle
+        const originalDisplayLogs = window.displayLogs;
+        window.displayLogs = function() {
+            if(typeof originalDisplayLogs === "function") originalDisplayLogs();
+            if(document.body.classList.contains('admin-active')) {
+                document.querySelectorAll('#logList .item-card').forEach((item, i) => {
+                    if(!item.querySelector('.delete-btn')) {
+                        const btn = document.createElement('button');
+                        btn.innerHTML = 'Sil';
+                        btn.style = "background:#ef4444; color:white; border:none; border-radius:4px; padding:2px 6px; cursor:pointer; float:right; font-size:10px; font-weight:bold;";
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            deleteItem('notes', i, displayLogs);
+                        };
+                        item.appendChild(btn);
+                    }
+                });
+            }
+        };
+
+        // Hedefleri butonla güncelle
+        const originalDisplayGoals = window.displayGoals;
+        window.displayGoals = function() {
+            if(typeof originalDisplayGoals === "function") originalDisplayGoals();
+            if(document.body.classList.contains('admin-active')) {
+                document.querySelectorAll('#bucketList .item-card').forEach((item, i) => {
+                    if(!item.querySelector('.delete-btn')) {
+                        const btn = document.createElement('button');
+                        btn.innerHTML = 'Sil';
+                        btn.style = "background:#ef4444; color:white; border:none; border-radius:4px; padding:2px 6px; cursor:pointer; float:right; font-size:10px; font-weight:bold;";
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            deleteItem('goals', i, displayGoals);
+                        };
+                        item.appendChild(btn);
+                    }
+                });
+            }
+        };
     </script>
 </body>
 </html>
