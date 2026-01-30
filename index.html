@@ -271,7 +271,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJMstaxDR4cdmSJb8F7sBJKvY_81qwTC9-ERnW4QFb0cv7fYpCUEFBBEkWEZZqjINQTA/exec";
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx55yER9raJ_bJizwyZqU1IUcmRCnb-Do2oqfhokbLRxQQepMjf3x9V5RUy3htcsxgCcw/exec";
 let selectedUser = localStorage.getItem('active_user') || null;
 let lastSyncTimestamp = 0; // Sadece yeni verileri çekmek için
 let mainMap = null;
@@ -569,49 +569,67 @@ function createConfetti() {
             L.marker([midLat, midLon], { icon: heartIcon }).addTo(mainMap);
         }
 
-        async function syncVeri() {
-            try {
-                const response = await fetch(SCRIPT_URL + "?action=read");
-                const remoteData = await response.json();
-                const stringified = JSON.stringify(remoteData);
-                if(stringified === lastSyncData) return;
-                lastSyncData = stringified;
-                
-                // NOTLAR GÜNCELLE
-                if(remoteData.notes) { 
-                    localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
-                    displayLogs(); 
+       async function syncVeri() {
+    try {
+        // Mevcut SCRIPT_URL üzerinden veri çekimi (Mantık aynı kaldı)
+        // Sonuna eklenen zaman damgası tarayıcının bayat veri çekmesini engeller
+        const response = await fetch(SCRIPT_URL + "?action=read&t=" + new Date().getTime());
+        if (!response.ok) return;
+        const remoteData = await response.json();
+        
+        const stringified = JSON.stringify(remoteData);
+        if(stringified === lastSyncData) return;
+        lastSyncData = stringified;
+
+        // --- VERİLERİ DEĞİŞTİRMEDEN İŞLEME ---
+
+        // NOTLAR GÜNCELLE
+        if(remoteData.notes) { 
+            localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
+            if(typeof displayLogs === "function") displayLogs(); 
+        }
+
+        // PLANLAR GÜNCELLE
+        if(remoteData.goals) { 
+            localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
+            if(typeof displayGoals === "function") displayGoals(); 
+        }
+
+        // SOHBET GÜNCELLE
+        if(remoteData.chats) { 
+            // Sohbetin doğru akması için gelen veriyi yerel hafızaya alıyoruz
+            localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
+            if(typeof displayChats === "function") displayChats(); 
+        }
+
+        // ŞARKILAR GÜNCELLE
+        if(remoteData.songs) {
+            localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
+            remoteData.songs.forEach(s => { 
+                localStorage.setItem('song_' + s.user, s.link); 
+            });
+            if(typeof loadSongs === "function") loadSongs();
+            if(typeof displaySongHistory === "function") displaySongHistory();
+        }
+
+        // MODLAR GÜNCELLE (Mevcut 24 saat ve Zaman korumalı mantık)
+        if(remoteData.moods) {
+            const now = new Date().getTime();
+            remoteData.moods.forEach(m => { 
+                const localTime = localStorage.getItem('mood_time_' + m.user) || 0;
+                // Senin kodundaki orijinal zaman kontrolü:
+                if(m.mood && m.time >= localTime) { 
+                    localStorage.setItem('mood_' + m.user, m.mood); 
+                    localStorage.setItem('mood_time_' + m.user, m.time); 
                 }
-                // PLANLAR GÜNCELLE
-                if(remoteData.goals) { 
-                    localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
-                    displayGoals(); 
-                }
-                // SOHBET GÜNCELLE
-                if(remoteData.chats) { 
-                    localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
-                    displayChats(); 
-                }
-                // ŞARKILAR GÜNCELLE
-                if(remoteData.songs) {
-                    localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
-                    remoteData.songs.forEach(s => { localStorage.setItem('song_' + s.user, s.link); });
-                    loadSongs();
-                    displaySongHistory();
-                }
-                // MODLAR GÜNCELLE (24 Saat Korumalı)
-                if(remoteData.moods) {
-                    const now = new Date().getTime();
-                    remoteData.moods.forEach(m => { 
-                        const localTime = localStorage.getItem('mood_time_' + m.user) || 0;
-                        if(m.mood && m.time >= localTime) { 
-                            localStorage.setItem('mood_' + m.user, m.mood); 
-                            localStorage.setItem('mood_time_' + m.user, m.time); 
-                        }
-                    });
-                    updateMoodUI();
-                }
-            } catch(e) { console.log("Senkronizasyon hatası:", e); }
+            });
+            if(typeof updateMoodUI === "function") updateMoodUI();
+        }
+
+    } catch(e) { 
+        console.log("Senkronizasyon hatası:", e); 
+    }
+
         }
 
         function toggleQuickMenu() {
