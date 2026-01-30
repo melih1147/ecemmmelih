@@ -272,9 +272,24 @@
 
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyYpfndfdEvUrtzemteCiWllsCUM8Oq1ANtwKmtrHMrdzB5-PJjDjNnXlWs3YqOgHiXaw/exec";
-        let selectedUser = localStorage.getItem('active_user') || null;
-        let lastSyncData = "";
-        let mainMap = null;
+
+// Giriş yapamama sorununu çözen güncellenmiş setUser fonksiyonu
+function setUser(name) {
+    console.log("Kullanıcı seçildi: " + name); // Hata ayıklama için
+    selectedUser = name;
+    localStorage.setItem('active_user', name);
+    
+    // Arayüzü hemen değiştir
+    document.getElementById('identityOverlay').classList.add('hidden');
+    document.getElementById('step1').classList.remove('hidden');
+    
+    // Excel'e sessizce veri gönder (Yanıt beklemeden devam et)
+    fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: JSON.stringify({ user: name, tip: "Log", mesaj: "Sisteme Giriş Yaptı" }) 
+    }).catch(e => console.log("Excel bağlantı notu: Henüz hazır değil."));
+}
 
         window.onload = function() {
     
@@ -802,6 +817,7 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
+
 
 
 
