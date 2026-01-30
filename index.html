@@ -271,7 +271,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxU5qfWwHBZsHD5UrKoVcYL1iQFIJYdLOsJhkctJM6arw4A3VWiOLxK-w8zd_wzed5dQg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwz0ixUvEFOHVT_UdfaANVkZj-wYWy_swfou6Hlw51KgUBpoZrr95rerjDBHPK73xBDnw/exec";
         let selectedUser = localStorage.getItem('active_user') || null;
         let lastSyncData = "";
         let mainMap = null;
@@ -685,108 +685,117 @@ setInterval(updateWeather, 900000); // 15 dakikada bir otomatik günceller
             if(song) { navigator.clipboard.writeText(song); alert(`Kopyalandı!`); }
         }
 
-       function adminLogin() {
-            const id = prompt("Admin ID:");
-            const pw = prompt("Şifre:");
-            if(id === "melih" && pw === "9999") {
-                const action = prompt("İşlem seçin:\n1: Silme modunu aç/kapat\n2: Tüm verileri sıfırla");
-                
-                if(action === "1") {
-                    document.body.classList.toggle('admin-active');
-                    const isActive = document.body.classList.contains('admin-active');
-                    alert(isActive ? "Silme modu aktif!" : "Silme modu kapatıldı.");
-                    // Takılmayı önlemek için arayüzü zorla tazele
-                    if(typeof displayChats === "function") displayChats();
-                    if(typeof displayLogs === "function") displayLogs();
-                    if(typeof displayGoals === "function") displayGoals();
-                } else if(action === "2") {
-                    if(confirm("Tüm veriler silinsin mi?")) { 
-                        localStorage.clear(); 
-                        location.reload(); 
-                    }
-                }
-            } else {
-                alert("Hatalı giriş!");
-            }
-        }
+// 1. Ortak Senkronizasyon: Başka sekmede işlem yapıldığında anında güncelle
+window.addEventListener('storage', (e) => {
+    const keys = ['chats', 'notes', 'goals'];
+    if (keys.includes(e.key)) {
+        if(typeof displayChats === "function") displayChats();
+        if(typeof displayLogs === "function") displayLogs();
+        if(typeof displayGoals === "function") displayGoals();
+    }
+});
 
-        // Hızlı Silme Fonksiyonu (Takılma yapmaz)
-        function deleteItem(storageKey, index, refreshFunc) {
-            let data = JSON.parse(localStorage.getItem(storageKey)) || [];
-            data.splice(index, 1);
-            localStorage.setItem(storageKey, JSON.stringify(data));
+// 2. Ana Admin Fonksiyonu
+function adminLogin() {
+    const id = prompt("Admin ID:");
+    const pw = prompt("Şifre:");
+    if(id === "melih" && pw === "9999") {
+        const action = prompt("1: Silme modunu aç/kapat\n2: Tüm verileri SORGUSUZ sıfırla");
+        
+        if(action === "1") {
+            document.body.classList.toggle('admin-active');
+            const isActive = document.body.classList.contains('admin-active');
+            // Kullanıcıyı bekletmemek için alert yerine konsola yazıyoruz
+            console.log(isActive ? "Silme modu aktif" : "Kapatıldı");
             
-            // Excel'e sessizce bildir
-            if(typeof sendToExcel === "function") {
-                sendToExcel("Öğe Silindi", "Admin-Silme", storageKey);
-            }
-            
-            // Ekranı anında güncelle
-            refreshFunc();
+            // Ekranı tazele ki butonlar gelsin/gitsin
+            if(typeof displayChats === "function") displayChats();
+            if(typeof displayLogs === "function") displayLogs();
+            if(typeof displayGoals === "function") displayGoals();
+        } else if(action === "2") {
+            // Soru sormadan direkt temizler
+            localStorage.clear(); 
+            location.reload(); 
         }
+    } else {
+        alert("Hatalı giriş!");
+    }
+}
 
-        // Sohbetleri butonla güncelle
-        const originalDisplayChats = window.displayChats;
-        window.displayChats = function() {
-            if(typeof originalDisplayChats === "function") originalDisplayChats();
-            if(document.body.classList.contains('admin-active')) {
-                document.querySelectorAll('.msg').forEach((msg, i) => {
-                    if(!msg.querySelector('.delete-btn')) {
-                        const btn = document.createElement('button');
-                        btn.innerHTML = '×';
-                        btn.style = "background:#ef4444; color:white; border:none; border-radius:4px; padding:0 5px; cursor:pointer; float:right; margin-left:5px; font-weight:bold; line-height:1;";
-                        btn.onclick = (e) => { 
-                            e.preventDefault();
-                            e.stopPropagation(); 
-                            deleteItem('chats', i, displayChats); 
-                        };
-                        msg.appendChild(btn);
-                    }
-                });
-            }
-        };
+// 3. Hızlı Silme: Onay mekanizması tamamen kaldırıldı
+function deleteItem(storageKey, index, refreshFunc) {
+    let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+    data.splice(index, 1);
+    localStorage.setItem(storageKey, JSON.stringify(data));
+    
+    if(typeof sendToExcel === "function") {
+        sendToExcel("Öğe Silindi", "Admin-Panel", storageKey);
+    }
+    
+    // UI Güncelleme
+    refreshFunc();
+}
 
-        // Notları butonla güncelle
-        const originalDisplayLogs = window.displayLogs;
-        window.displayLogs = function() {
-            if(typeof originalDisplayLogs === "function") originalDisplayLogs();
-            if(document.body.classList.contains('admin-active')) {
-                document.querySelectorAll('#logList .item-card').forEach((item, i) => {
-                    if(!item.querySelector('.delete-btn')) {
-                        const btn = document.createElement('button');
-                        btn.innerHTML = 'Sil';
-                        btn.style = "background:#ef4444; color:white; border:none; border-radius:4px; padding:2px 6px; cursor:pointer; float:right; font-size:10px; font-weight:bold;";
-                        btn.onclick = (e) => {
-                            e.preventDefault();
-                            deleteItem('notes', i, displayLogs);
-                        };
-                        item.appendChild(btn);
-                    }
-                });
-            }
-        };
+// --- OTOMATİK BUTON EKLEME SİSTEMİ ---
 
-        // Hedefleri butonla güncelle
-        const originalDisplayGoals = window.displayGoals;
-        window.displayGoals = function() {
-            if(typeof originalDisplayGoals === "function") originalDisplayGoals();
-            if(document.body.classList.contains('admin-active')) {
-                document.querySelectorAll('#bucketList .item-card').forEach((item, i) => {
-                    if(!item.querySelector('.delete-btn')) {
-                        const btn = document.createElement('button');
-                        btn.innerHTML = 'Sil';
-                        btn.style = "background:#ef4444; color:white; border:none; border-radius:4px; padding:2px 6px; cursor:pointer; float:right; font-size:10px; font-weight:bold;";
-                        btn.onclick = (e) => {
-                            e.preventDefault();
-                            deleteItem('goals', i, displayGoals);
-                        };
-                        item.appendChild(btn);
-                    }
-                });
+// Sohbetler için
+const originalDisplayChats = window.displayChats;
+window.displayChats = function() {
+    if(typeof originalDisplayChats === "function") originalDisplayChats();
+    if(document.body.classList.contains('admin-active')) {
+        document.querySelectorAll('.msg').forEach((msg, i) => {
+            if(!msg.querySelector('.admin-del')) {
+                const btn = document.createElement('button');
+                btn.innerHTML = '×';
+                btn.className = 'admin-del';
+                btn.style = "background:#ff4d4d; color:white; border:none; border-radius:4px; width:18px; height:18px; cursor:pointer; float:right; font-weight:bold; margin-left:5px;";
+                btn.onclick = (e) => { e.stopPropagation(); deleteItem('chats', i, displayChats); };
+                msg.prepend(btn);
             }
-        };
+        });
+    }
+};
+
+// Notlar (Loglar) için
+const originalDisplayLogs = window.displayLogs;
+window.displayLogs = function() {
+    if(typeof originalDisplayLogs === "function") originalDisplayLogs();
+    if(document.body.classList.contains('admin-active')) {
+        document.querySelectorAll('#logList .item-card').forEach((item, i) => {
+            if(!item.querySelector('.admin-del')) {
+                const btn = document.createElement('button');
+                btn.innerHTML = 'SİL';
+                btn.className = 'admin-del';
+                btn.style = "background:#ff4d4d; color:white; border:none; border-radius:4px; padding:2px 8px; cursor:pointer; float:right; font-size:10px; font-weight:bold;";
+                btn.onclick = (e) => { e.stopPropagation(); deleteItem('notes', i, displayLogs); };
+                item.prepend(btn);
+            }
+        });
+    }
+};
+
+// Planlar (Hedefler) için
+const originalDisplayGoals = window.displayGoals;
+window.displayGoals = function() {
+    if(typeof originalDisplayGoals === "function") originalDisplayGoals();
+    if(document.body.classList.contains('admin-active')) {
+        document.querySelectorAll('#bucketList .item-card').forEach((item, i) => {
+            if(!item.querySelector('.admin-del')) {
+                const btn = document.createElement('button');
+                btn.innerHTML = 'SİL';
+                btn.className = 'admin-del';
+                btn.style = "background:#ff4d4d; color:white; border:none; border-radius:4px; padding:2px 8px; cursor:pointer; float:right; font-size:10px; font-weight:bold;";
+                btn.onclick = (e) => { e.stopPropagation(); deleteItem('goals', i, displayGoals); };
+                item.prepend(btn);
+            }
+        });
+    }
+};
     </script>
 </body>
 </html>
+
+
+
 
 
