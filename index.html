@@ -174,12 +174,19 @@
     </div>
 </div>
 
+<div id="status-panel" style="background: rgba(30, 41, 59, 0.8); padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; margin-bottom: 10px; border: 1px solid #334155;">
+    Ecem: <span id="status-ecem">...</span> | Melih: <span id="status-melih">...</span>
+</div>
+
 <div class="love-card-wrapper">
-    <div class="love-card" onclick="showLoveWord()">
+    <div class="love-card" onclick="sendLoveClick()">
         <div class="love-content">
             <span class="sparkle">✨</span>
             <span id="love-text-display">Sana Bir Mesajım Var... (Tıkla)</span>
             <span class="sparkle">✨</span>
+        </div>
+        <div id="love-stats" style="font-size: 0.75rem; margin-top: 10px; color: white; opacity: 0.9; font-weight: normal;">
+            Yükleniyor...
         </div>
         <div class="star-decor" style="top:10%; left:5%;">★</div>
         <div class="star-decor" style="bottom:10%; right:5%;">★</div>
@@ -758,24 +765,74 @@ function adminLogin() {
     }
 }
 
+let startTime = Date.now();
+
+// 1. ONAYSIZ SİLME (Bastığın an gider)
 function deleteItem(type, index, callback) {
-    if(!confirm("Bu öğeyi herkesten gizlemek istediğine emin misin?")) return;
-    
     let data = JSON.parse(localStorage.getItem(type) || "[]");
     if(data[index]) {
-        // Excel'e "SİLİNDİ" bilgisini gönderiyoruz
         const item = data[index];
         const silmeMesaji = (type === 'chats') ? item.msg : (item.mesaj || item.text);
         
-        // Veriyi silmiyoruz, sadece durumunu "GİZLİ" yapıp gönderiyoruz
-        sendToExcel(silmeMesaji, "SIL_"+type); 
+        sendToExcel(silmeMesaji, "SIL_"+type); // Excel'e silme komutu gönder
         
-        // Yerelde hemen gizle
         data.splice(index, 1);
         localStorage.setItem(type, JSON.stringify(data));
         if(callback) callback();
-        alert("Öğe herkesten gizlendi (Excel'de arşivlendi).");
     }
+}
+
+// 2. SEVGİ SAYACI FONKSİYONU
+function sendLoveClick() {
+    showLoveWord(); // Mevcut konfeti ve mesaj fonksiyonun
+    sendToExcel("Kalp Atışı", "Sevgi_Click"); 
+}
+
+// 3. AKTİFLİK VE SÜRE TAKİBİ
+function updateMyStatus(status) {
+    sendToExcel(status, "Status_Update");
+}
+
+// Sayfa açıldığında aktif yap
+window.addEventListener('load', () => {
+    updateMyStatus("Aktif 🟢");
+});
+
+// Sayfa kapatıldığında süre hesapla ve deaktif yap
+window.addEventListener('beforeunload', () => {
+    let duration = Math.round((Date.now() - startTime) / 60000);
+    sendToExcel(`${duration} dk durdu`, "Session_End");
+    updateMyStatus("Deaktif 🔴");
+});
+
+// 4. VERİLERİ EKRANA BASAN syncVeri GÜNCELLEMESİ
+async function syncVeri() {
+    try {
+        const response = await fetch(SCRIPT_URL + "?action=read&t=" + Date.now());
+        const remoteData = await response.json();
+        if(!remoteData) return;
+
+        // Sevgi İstatistiklerini Güncelle
+        if(remoteData.loveStats) {
+            document.getElementById('love-stats').innerHTML = 
+                `Ecem: ${remoteData.loveStats.ecem || 0} ❤️ Melih: ${remoteData.loveStats.melih || 0}`;
+        }
+
+        // Aktiflik Durumlarını Güncelle
+        if(remoteData.userStatus) {
+            document.getElementById('status-ecem').innerText = remoteData.userStatus.ecem || "Bilinmiyor";
+            document.getElementById('status-melih').innerText = remoteData.userStatus.melih || "Bilinmiyor";
+        }
+
+        const stringified = JSON.stringify(remoteData);
+        if(stringified === lastSyncData) return;
+        lastSyncData = stringified;
+
+        // Diğer mevcut güncellemelerin (Chat, Notlar vb.) aynen devam etsin...
+        if(remoteData.chats) { localStorage.setItem('chats', JSON.stringify(remoteData.chats)); displayChats(); }
+        if(remoteData.notes) { localStorage.setItem('notes', JSON.stringify(remoteData.notes)); displayLogs(); }
+        // ...
+    } catch(e) { console.warn("Yenileniyor..."); }
 }
 
 // --- OTOMATİK BUTON EKLEME SİSTEMİ ---
@@ -836,5 +893,4 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
-
 
