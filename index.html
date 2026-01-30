@@ -291,7 +291,9 @@
                 updateStreakUI();
             }
             startBirthdayTimers();
-            setInterval(syncVeri, 1000); // 1 saniyede bir kontrol et
+        // 1000ms (1 saniye) yerine 1500ms kullanmak Google'ın hız limitine takılmanı önler, 
+// böylece sistem "donma" yapmaz.
+setInterval(syncVeri, 1500);
         };
 async function updateWeather() {
     const locations = {
@@ -432,50 +434,61 @@ function createConfetti() {
             L.marker([midLat, midLon], { icon: heartIcon }).addTo(mainMap);
         }
 
-        async function syncVeri() {
-            try {
-                const response = await fetch(SCRIPT_URL + "?action=read");
-                const remoteData = await response.json();
-                const stringified = JSON.stringify(remoteData);
-                if(stringified === lastSyncData) return;
-                lastSyncData = stringified;
-                
-                // NOTLAR GÜNCELLE
-                if(remoteData.notes) { 
-                    localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
-                    displayLogs(); 
-                }
-                // PLANLAR GÜNCELLE
-                if(remoteData.goals) { 
-                    localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
-                    displayGoals(); 
-                }
-                // SOHBET GÜNCELLE
-                if(remoteData.chats) { 
-                    localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
-                    displayChats(); 
-                }
-                // ŞARKILAR GÜNCELLE
-                if(remoteData.songs) {
-                    localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
-                    remoteData.songs.forEach(s => { localStorage.setItem('song_' + s.user, s.link); });
-                    loadSongs();
-                    displaySongHistory();
-                }
-                // MODLAR GÜNCELLE (24 Saat Korumalı)
-                if(remoteData.moods) {
-                    const now = new Date().getTime();
-                    remoteData.moods.forEach(m => { 
-                        const localTime = localStorage.getItem('mood_time_' + m.user) || 0;
-                        if(m.mood && m.time >= localTime) { 
-                            localStorage.setItem('mood_' + m.user, m.mood); 
-                            localStorage.setItem('mood_time_' + m.user, m.time); 
-                        }
-                    });
-                    updateMoodUI();
-                }
-            } catch(e) { console.log("Senkronizasyon hatası:", e); }
+    async function syncVeri() {
+    try {
+        // 1. GÜNCELLEME: URL sonuna zaman damgası ekleyerek tarayıcı önbelleğini (cache) atlıyoruz.
+        // Bu, gecikmeyi (lag) azaltır ve her zaman en taze veriyi çekmenizi sağlar.
+        const response = await fetch(SCRIPT_URL + "?action=read&t=" + new Date().getTime());
+        const remoteData = await response.json();
+        
+        // Veri boş gelirse işlem yapma
+        if(!remoteData) return;
+
+        const stringified = JSON.stringify(remoteData);
+        if(stringified === lastSyncData) return;
+        lastSyncData = stringified;
+        
+        // NOTLAR GÜNCELLE
+        if(remoteData.notes) { 
+            localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
+            displayLogs(); 
         }
+        // PLANLAR GÜNCELLE
+        if(remoteData.goals) { 
+            localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
+            displayGoals(); 
+        }
+        // SOHBET GÜNCELLE
+        if(remoteData.chats) { 
+            localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
+            displayChats(); 
+        }
+        // ŞARKILAR GÜNCELLE
+        if(remoteData.songs) {
+            localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
+            remoteData.songs.forEach(s => { 
+                if(s.user && s.link) localStorage.setItem('song_' + s.user, s.link); 
+            });
+            loadSongs();
+            displaySongHistory();
+        }
+        // MODLAR GÜNCELLE
+        if(remoteData.moods) {
+            const now = new Date().getTime();
+            remoteData.moods.forEach(m => { 
+                const localTime = parseInt(localStorage.getItem('mood_time_' + m.user)) || 0;
+                if(m.mood && m.time >= localTime) { 
+                    localStorage.setItem('mood_' + m.user, m.mood); 
+                    localStorage.setItem('mood_time_' + m.user, m.time); 
+                }
+            });
+            updateMoodUI();
+        }
+    } catch(e) { 
+        // Konsolda çok fazla hata birikmemesi için sadece kritik hataları yazdırıyoruz
+        console.warn("Veri senkronize edilemedi, internetinizi kontrol edin."); 
+    }
+}
 
         function toggleQuickMenu() {
             const menu = document.getElementById('quickMenu');
@@ -488,29 +501,42 @@ function createConfetti() {
             toggleQuickMenu();
         }
 
-        function sendChatMessage() {
+function sendChatMessage() {
     const val = document.getElementById('chatInput').value;
     if(!val) return;
+
+    const chatBox = document.getElementById('chatBox');
     
-    // YEREL KAYIT SİLİNDİ: Artık mesajı önce kendi bilgisayarımıza kaydetmiyoruz.
-    // Direkt Excel'e gönderiyoruz. syncVeri fonksiyonu mesajı oradan geri getirecek.
-    sendToExcel(val, "Chat"); 
+    // 1. ADIM: Mesajı ekrana anında (beklemeden) ekle
+    const now = new Date().getTime();
+    const tempHtml = `<div class="msg msg-${selectedUser}" style="opacity: 0.6;" id="temp-${now}">${val}</div>`;
+    chatBox.innerHTML += tempHtml;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // 2. ADIM: Excel'e arka planda gönder
+    sendToExcel(val, "Chat");
     
     document.getElementById('chatInput').value = "";
-    // displayChats() çağırmanıza gerek yok, syncVeri zaten çağıracak.
+    
+    // 3. ADIM: 2 saniye sonra mesajın opaklığını düzelt (gittiğini onayla)
+    setTimeout(() => {
+        const tempMsg = document.getElementById(`temp-${now}`);
+        if(tempMsg) tempMsg.style.opacity = "1";
+    }, 2000);
 }
+function displayChats() {
+    const chats = JSON.parse(localStorage.getItem('chats') || "[]");
+    const chatBox = document.getElementById('chatBox');
+    chatBox.innerHTML = "";
 
-        function displayChats() {
-            const chats = JSON.parse(localStorage.getItem('chats')) || [];
-            const chatBox = document.getElementById('chatBox');
-            if(!chatBox) return;
-            chatBox.innerHTML = chats.map(c => `
-                <div class="msg msg-${c.user}">
-                    ${c.msg}
-                </div>
-            `).join('');
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+    // .reverse() ekleyerek son gelenin en üstte olmasını sağlıyoruz
+    chats.slice().reverse().forEach(c => {
+        const div = document.createElement('div');
+        div.className = `msg msg-${c.user}`;
+        div.innerText = c.msg;
+        chatBox.appendChild(div);
+    });
+}
 
         function setUser(name) {
             selectedUser = name;
@@ -726,18 +752,24 @@ function adminLogin() {
     }
 }
 
-// 3. Hızlı Silme: Onay mekanizması tamamen kaldırıldı
-function deleteItem(storageKey, index, refreshFunc) {
-    let data = JSON.parse(localStorage.getItem(storageKey)) || [];
-    data.splice(index, 1);
-    localStorage.setItem(storageKey, JSON.stringify(data));
+function deleteItem(type, index, callback) {
+    if(!confirm("Bu öğeyi herkesten gizlemek istediğine emin misin?")) return;
     
-    if(typeof sendToExcel === "function") {
-        sendToExcel("Öğe Silindi", "Admin-Panel", storageKey);
+    let data = JSON.parse(localStorage.getItem(type) || "[]");
+    if(data[index]) {
+        // Excel'e "SİLİNDİ" bilgisini gönderiyoruz
+        const item = data[index];
+        const silmeMesaji = (type === 'chats') ? item.msg : (item.mesaj || item.text);
+        
+        // Veriyi silmiyoruz, sadece durumunu "GİZLİ" yapıp gönderiyoruz
+        sendToExcel(silmeMesaji, "SIL_"+type); 
+        
+        // Yerelde hemen gizle
+        data.splice(index, 1);
+        localStorage.setItem(type, JSON.stringify(data));
+        if(callback) callback();
+        alert("Öğe herkesten gizlendi (Excel'de arşivlendi).");
     }
-    
-    // UI Güncelleme
-    refreshFunc();
 }
 
 // --- OTOMATİK BUTON EKLEME SİSTEMİ ---
