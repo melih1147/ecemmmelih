@@ -569,66 +569,57 @@ function createConfetti() {
             L.marker([midLat, midLon], { icon: heartIcon }).addTo(mainMap);
         }
 
-       async function syncVeri() {
+      // ÖNCEKİ TÜM syncVeri FONKSİYONLARINI SİLİN VE BUNU YAPIŞTIRIN
+async function syncVeri() {
     try {
-        // Mevcut SCRIPT_URL üzerinden veri çekimi (Mantık aynı kaldı)
-        // Sonuna eklenen zaman damgası tarayıcının bayat veri çekmesini engeller
+        // Cache-busting: Tarayıcının her saniye Excel'den "taze" veri çekmesini sağlar
         const response = await fetch(SCRIPT_URL + "?action=read&t=" + new Date().getTime());
         if (!response.ok) return;
+        
         const remoteData = await response.json();
         
+        // Veri değişmiş mi kontrol et (Gereksiz ekran yenilemeyi önler)
         const stringified = JSON.stringify(remoteData);
         if(stringified === lastSyncData) return;
         lastSyncData = stringified;
 
-        // --- VERİLERİ DEĞİŞTİRMEDEN İŞLEME ---
+        console.log("Excel'den taze veriler alındı...");
+
+        // SOHBET GÜNCELLE (Tersten sıralama ile)
+        if(remoteData.chats) { 
+            localStorage.setItem('chats', JSON.stringify(remoteData.chats.reverse())); 
+        }
 
         // NOTLAR GÜNCELLE
         if(remoteData.notes) { 
             localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
-            if(typeof displayLogs === "function") displayLogs(); 
         }
 
         // PLANLAR GÜNCELLE
         if(remoteData.goals) { 
             localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
-            if(typeof displayGoals === "function") displayGoals(); 
         }
-
-        // SOHBET GÜNCELLE
-        if(remoteData.chats) { 
-            // Sohbetin doğru akması için gelen veriyi yerel hafızaya alıyoruz
-            localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
-            if(typeof displayChats === "function") displayChats(); 
-        }
-
-        // ŞARKILAR GÜNCELLE
+        
+        // ŞARKILAR VE MODLAR GÜNCELLE
         if(remoteData.songs) {
             localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
-            remoteData.songs.forEach(s => { 
-                localStorage.setItem('song_' + s.user, s.link); 
-            });
-            if(typeof loadSongs === "function") loadSongs();
-            if(typeof displaySongHistory === "function") displaySongHistory();
+            remoteData.songs.forEach(s => localStorage.setItem('song_' + s.user, s.link));
         }
 
-        // MODLAR GÜNCELLE (Mevcut 24 saat ve Zaman korumalı mantık)
         if(remoteData.moods) {
-            const now = new Date().getTime();
-            remoteData.moods.forEach(m => { 
-                const localTime = localStorage.getItem('mood_time_' + m.user) || 0;
-                // Senin kodundaki orijinal zaman kontrolü:
-                if(m.mood && m.time >= localTime) { 
-                    localStorage.setItem('mood_' + m.user, m.mood); 
-                    localStorage.setItem('mood_time_' + m.user, m.time); 
-                }
+            remoteData.moods.forEach(m => {
+                localStorage.setItem('mood_' + m.user, m.mood);
+                localStorage.setItem('mood_time_' + m.user, m.time);
             });
-            if(typeof updateMoodUI === "function") updateMoodUI();
         }
 
+        // KRİTİK: Tüm veriler hafızaya işlendikten sonra ekranı tek seferde yenile
+        refreshUI(); 
+        
     } catch(e) { 
-        console.log("Senkronizasyon hatası:", e); 
+        console.warn("Veri çekme sırasında bir bağlantı sorunu oluştu."); 
     }
+}
 
         }
 
@@ -949,3 +940,4 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
+
