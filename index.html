@@ -291,10 +291,9 @@
                 updateStreakUI();
             }
             startBirthdayTimers();
-        // 1000ms (1 saniye) yerine 1500ms kullanmak Google'ın hız limitine takılmanı önler, 
-// böylece sistem "donma" yapmaz.
-setInterval(syncVeri, 1500);
-        };
+// index.html'in en altındaki satırı bununla değiştirin:
+setInterval(syncVeri, 800);
+        };        
 async function updateWeather() {
     const locations = {
         ecem: { lat: 38.2312, lon: 27.9719, prefix: 'weather-ecem' },
@@ -434,17 +433,16 @@ function createConfetti() {
             L.marker([midLat, midLon], { icon: heartIcon }).addTo(mainMap);
         }
 
-    async function syncVeri() {
+  async function syncVeri() {
     try {
-        // 1. GÜNCELLEME: URL sonuna zaman damgası ekleyerek tarayıcı önbelleğini (cache) atlıyoruz.
-        // Bu, gecikmeyi (lag) azaltır ve her zaman en taze veriyi çekmenizi sağlar.
+        // 't=' parametresi Google'ın eski veriyi (cache) vermesini engeller, hızı artırır
         const response = await fetch(SCRIPT_URL + "?action=read&t=" + new Date().getTime());
         const remoteData = await response.json();
         
-        // Veri boş gelirse işlem yapma
         if(!remoteData) return;
 
         const stringified = JSON.stringify(remoteData);
+        // Veri değişmediyse boşuna ekranı yenileyip tarayıcıyı yorma
         if(stringified === lastSyncData) return;
         lastSyncData = stringified;
         
@@ -453,16 +451,19 @@ function createConfetti() {
             localStorage.setItem('notes', JSON.stringify(remoteData.notes)); 
             displayLogs(); 
         }
+
         // PLANLAR GÜNCELLE
         if(remoteData.goals) { 
             localStorage.setItem('goals', JSON.stringify(remoteData.goals)); 
             displayGoals(); 
         }
+
         // SOHBET GÜNCELLE
         if(remoteData.chats) { 
             localStorage.setItem('chats', JSON.stringify(remoteData.chats)); 
             displayChats(); 
         }
+
         // ŞARKILAR GÜNCELLE
         if(remoteData.songs) {
             localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
@@ -472,11 +473,13 @@ function createConfetti() {
             loadSongs();
             displaySongHistory();
         }
+
         // MODLAR GÜNCELLE
         if(remoteData.moods) {
             const now = new Date().getTime();
             remoteData.moods.forEach(m => { 
                 const localTime = parseInt(localStorage.getItem('mood_time_' + m.user)) || 0;
+                // Sadece daha yeni olan mod bilgisini işle
                 if(m.mood && m.time >= localTime) { 
                     localStorage.setItem('mood_' + m.user, m.mood); 
                     localStorage.setItem('mood_time_' + m.user, m.time); 
@@ -485,8 +488,7 @@ function createConfetti() {
             updateMoodUI();
         }
     } catch(e) { 
-        // Konsolda çok fazla hata birikmemesi için sadece kritik hataları yazdırıyoruz
-        console.warn("Veri senkronize edilemedi, internetinizi kontrol edin."); 
+        console.warn("Senkronizasyon bekleniyor..."); 
     }
 }
 
@@ -507,22 +509,18 @@ function sendChatMessage() {
 
     const chatBox = document.getElementById('chatBox');
     
-    // 1. ADIM: Mesajı ekrana anında (beklemeden) ekle
-    const now = new Date().getTime();
-    const tempHtml = `<div class="msg msg-${selectedUser}" style="opacity: 0.6;" id="temp-${now}">${val}</div>`;
+    // Mesajı kendi ekranına anında bas (Opaklık 1 olsun, şüphe kalmasın)
+    const tempHtml = `<div class="msg msg-${selectedUser}">${val}</div>`;
     chatBox.innerHTML += tempHtml;
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // 2. ADIM: Excel'e arka planda gönder
+    // Excel'e gönder
     sendToExcel(val, "Chat");
     
     document.getElementById('chatInput').value = "";
-    
-    // 3. ADIM: 2 saniye sonra mesajın opaklığını düzelt (gittiğini onayla)
-    setTimeout(() => {
-        const tempMsg = document.getElementById(`temp-${now}`);
-        if(tempMsg) tempMsg.style.opacity = "1";
-    }, 2000);
+
+    // GÖNDERDİKTEN HEMEN SONRA: Karşıdan veri beklemeden sistemi 1 kez zorla çalıştır
+    setTimeout(syncVeri, 500); 
 }
 function displayChats() {
     const chats = JSON.parse(localStorage.getItem('chats') || "[]");
@@ -830,3 +828,4 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
+
