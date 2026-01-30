@@ -275,20 +275,32 @@
 
 // Giriş yapamama sorununu çözen güncellenmiş setUser fonksiyonu
 function setUser(name) {
-    console.log("Kullanıcı seçildi: " + name); // Hata ayıklama için
+    console.log("Kullanıcı seçiliyor: " + name);
     selectedUser = name;
     localStorage.setItem('active_user', name);
     
-    // Arayüzü hemen değiştir
-    document.getElementById('identityOverlay').classList.add('hidden');
+    // GİRİŞ ENGELİNİ KALDIRAN KRİTİK KISIM:
+    // Önce arayüzü değiştiriyoruz ki buton hemen tepki versin
+    document.getElementById('identityOverlay').style.display = 'none';
     document.getElementById('step1').classList.remove('hidden');
     
-    // Excel'e sessizce veri gönder (Yanıt beklemeden devam et)
-    fetch(SCRIPT_URL, { 
-        method: 'POST', 
-        mode: 'no-cors', 
-        body: JSON.stringify({ user: name, tip: "Log", mesaj: "Sisteme Giriş Yaptı" }) 
-    }).catch(e => console.log("Excel bağlantı notu: Henüz hazır değil."));
+    // Sonra arka planda Excel'e haber veriyoruz
+    try {
+        fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify({ user: name, tip: "Log", mesaj: "Giriş Yaptı" }) 
+        });
+    } catch (e) {
+        console.log("Excel bağlantısı şu an kurulamadı ama giriş yapıldı.");
+    }
+
+    // Arayüzü tazele
+    displayChats();
+    displayLogs();
+    displayGoals();
+    loadSongs();
+}
 }
 
         window.onload = function() {
@@ -817,6 +829,7 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
+
 
 
 
