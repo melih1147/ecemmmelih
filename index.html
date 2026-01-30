@@ -292,7 +292,7 @@
             }
             startBirthdayTimers();
 // index.html'in en altındaki satırı bununla değiştirin:
-setInterval(syncVeri, 800);
+setInterval(syncVeri, 500);
         };        
 async function updateWeather() {
     const locations = {
@@ -433,7 +433,7 @@ function createConfetti() {
             L.marker([midLat, midLon], { icon: heartIcon }).addTo(mainMap);
         }
 
-  async function syncVeri() {
+ async function syncVeri() {
     try {
         // 't=' parametresi Google'ın eski veriyi (cache) vermesini engeller, hızı artırır
         const response = await fetch(SCRIPT_URL + "?action=read&t=" + new Date().getTime());
@@ -509,18 +509,26 @@ function sendChatMessage() {
 
     const chatBox = document.getElementById('chatBox');
     
-    // Mesajı kendi ekranına anında bas (Opaklık 1 olsun, şüphe kalmasın)
-    const tempHtml = `<div class="msg msg-${selectedUser}">${val}</div>`;
+    // 1. ADIM: Mesajı ekrana anında (beklemeden) ekle
+    const now = new Date().getTime();
+    const tempHtml = `<div class="msg msg-${selectedUser}" style="opacity: 0.6;" id="temp-${now}">${val}</div>`;
     chatBox.innerHTML += tempHtml;
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Excel'e gönder
+    // 2. ADIM: Excel'e arka planda gönder
     sendToExcel(val, "Chat");
     
     document.getElementById('chatInput').value = "";
+    
+    // 3. ADIM: Gecikmeyi öldüren kritik dokunuş (BURAYI EKLE)
+    // Mesaj gider gitmez beklemeden veriyi geri çekmeyi tetikle
+    setTimeout(syncVeri, 300); 
 
-    // GÖNDERDİKTEN HEMEN SONRA: Karşıdan veri beklemeden sistemi 1 kez zorla çalıştır
-    setTimeout(syncVeri, 500); 
+    // 4. ADIM: Opaklığı düzelt
+    setTimeout(() => {
+        const tempMsg = document.getElementById(`temp-${now}`);
+        if(tempMsg) tempMsg.style.opacity = "1";
+    }, 2000);
 }
 function displayChats() {
     const chats = JSON.parse(localStorage.getItem('chats') || "[]");
@@ -828,4 +836,5 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
+
 
