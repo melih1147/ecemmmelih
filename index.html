@@ -271,39 +271,150 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyYpfndfdEvUrtzemteCiWllsCUM8Oq1ANtwKmtrHMrdzB5-PJjDjNnXlWs3YqOgHiXaw/exec";
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJMstaxDR4cdmSJb8F7sBJKvY_81qwTC9-ERnW4QFb0cv7fYpCUEFBBEkWEZZqjINQTA/exec";
+let selectedUser = localStorage.getItem('active_user') || null;
+let lastSyncTimestamp = 0; // Sadece yeni verileri çekmek için
+let mainMap = null;
 
-// Giriş yapamama sorununu çözen güncellenmiş setUser fonksiyonu
-function setUser(name) {
-    console.log("Kullanıcı seçiliyor: " + name);
-    selectedUser = name;
-    localStorage.setItem('active_user', name);
-    
-    // GİRİŞ ENGELİNİ KALDIRAN KRİTİK KISIM:
-    // Önce arayüzü değiştiriyoruz ki buton hemen tepki versin
-    document.getElementById('identityOverlay').style.display = 'none';
-    document.getElementById('step1').classList.remove('hidden');
-    
-    // Sonra arka planda Excel'e haber veriyoruz
-    try {
-        fetch(SCRIPT_URL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({ user: name, tip: "Log", mesaj: "Giriş Yaptı" }) 
-        });
-    } catch (e) {
-        console.log("Excel bağlantısı şu an kurulamadı ama giriş yapıldı.");
+// Sayfa yüklendiğinde başlat
+window.onload = function() {
+    if (selectedUser) {
+        document.getElementById('identityOverlay').classList.add('hidden');
+        document.getElementById('step1').classList.remove('hidden');
+        refreshUI();
     }
+    startBirthdayTimers();
+    
+    // VERİ ÇEKME HIZI: 1 Saniyeye düşürüldü
+    setInterval(syncVeri, 1000); 
+};
 
-    // Arayüzü tazele
+async function syncVeri() {
+    try {
+        // Cache-busting (Bayat veri gelmemesi için zaman damgası eklendi)
+        const response = await fetch(SCRIPT_URL + "?action=read&t=" + new Date().getTime());
+        if (!response.ok) return;
+        const remoteData = await response.json();
+        
+        // Verileri hafızaya işle (Eski verinin üzerine yazar, anlık günceller)
+        if(remoteData.chats) localStorage.setItem('chats', JSON.stringify(remoteData.chats.reverse()));
+        if(remoteData.notes) localStorage.setItem('notes', JSON.stringify(remoteData.notes));
+        if(remoteData.goals) localStorage.setItem('goals', JSON.stringify(remoteData.goals));
+        
+        // Şarkıları ve Modları Güncelle
+        if(remoteData.songs) {
+            remoteData.songs.forEach(s => localStorage.setItem('song_' + s.user, s.link));
+        }
+
+        remoteData.moods.forEach(m => {
+            localStorage.setItem('mood_' + m.user, m.mood);
+            localStorage.setItem('mood_time_' + m.user, m.time);
+        });
+
+        // Arayüzü tazele
+        refreshUI(); 
+    } catch(e) { 
+        console.warn("Hız limiti veya bağlantı sorunu..."); 
+    }
+};
+
+// Verileri Excel'den Çekme Fonksiyonu
+async function syncVeri() {
+    try {
+        const response = await fetch(SCRIPT_URL + "?action=read");
+        const remoteData = await response.json();
+        
+        // Eğer gelen veri boş değilse ve değişiklik varsa yerel hafızayı güncelle
+        if (remoteData) {
+            if (remoteData.chats) localStorage.setItem('chats', JSON.stringify(remoteData.chats));
+            if (remoteData.notes) localStorage.setItem('notes', JSON.stringify(remoteData.notes));
+            if (remoteData.goals) localStorage.setItem('goals', JSON.stringify(remoteData.goals));
+            if (remoteData.songs) {
+                localStorage.setItem('song_history', JSON.stringify(remoteData.songs));
+                // En son paylaşılan şarkıları slotlara yerleştir
+                remoteData.songs.forEach(s => {
+                    localStorage.setItem('song_' + s.user, s.link);
+                });
+            }
+            if (remoteData.moods) {
+                remoteData.moods.forEach(m => {
+                    localStorage.setItem('mood_' + m.user, m.mood);
+                    localStorage.setItem('mood_time_' + m.user, m.time);
+                });
+            }
+            refreshUI(); // Ekranı güncelle
+        }
+    } catch (e) {
+        console.error("Excel veri çekme hatası:", e);
+    }
+}
+
+// Ekrandaki tüm listeleri yenileyen ana fonksiyon
+function refreshUI() {
     displayChats();
     displayLogs();
     displayGoals();
     loadSongs();
-}
+    displaySongHistory();
+    updateMoodUI();
+    updateStreakUI();
 }
 
-        window.onload = function() {
+// Veriyi Excel'e Gönderme (Hızlandırılmış)
+async function sendToExcel(mesaj, tip, ekVeri = "") {
+    const entry = { 
+        user: selectedUser, 
+        tip: tip, 
+        mesaj: mesaj, 
+        time: new Date().getTime(), 
+        ek: ekVeri 
+    };
+    
+    // UI'da anında görmek için yerel ekleme (Opsiyonel)
+    try {
+        await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', // CORS engeline takılmamak için
+            cache: 'no-cache',
+            body: JSON.stringify(entry) 
+        });
+    } catch (e) {
+        console.log("Gönderim hatası");
+    }
+}
+
+// Spotify Slotlarını Düzeltme
+function loadSongs() {
+    ['ecem', 'melih'].forEach(u => {
+        const song = localStorage.getItem('song_' + u);
+        const slot = document.getElementById('spotify-' + u);
+        if(song && slot) {
+            if (song.includes("spotify.com")) {
+                const trackId = song.split("track/")[1]?.split("?")[0];
+                if (trackId) {
+                    slot.innerHTML = `<iframe src="https://open.spotify.com/embed/track/${trackId}" width="100%" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>`;
+                }
+            } else {
+                slot.innerText = "Geçersiz Spotify Linki";
+            }
+        }
+    });
+}
+
+// Mesaj Gönderme Butonunu Güncelleme
+function sendChatMessage() {
+    const val = document.getElementById('chatInput').value;
+    if(!val) return;
+    
+    // Anlık olarak ekrana bas (Excel'den gelmesini bekleme)
+    const chats = JSON.parse(localStorage.getItem('chats')) || [];
+    chats.push({ msg: val, user: selectedUser, time: new Date().getTime() });
+    localStorage.setItem('chats', JSON.stringify(chats));
+    displayChats();
+    
+    document.getElementById('chatInput').value = "";
+    sendToExcel(val, "Chat");
+}
     
             if (selectedUser) {
                 document.getElementById('identityOverlay').classList.add('hidden');
@@ -319,7 +430,6 @@ function setUser(name) {
             }
             startBirthdayTimers();
             setInterval(syncVeri, 1000); // 1 saniyede bir kontrol et
-        };
 async function updateWeather() {
     const locations = {
         ecem: { lat: 38.2312, lon: 27.9719, prefix: 'weather-ecem' },
@@ -551,17 +661,9 @@ function createConfetti() {
             loadSongs();
         }
 
-       function sendToExcel(mesaj, tip, ekVeri = "") {
-    const entry = { user: selectedUser, tip: tip, mesaj: mesaj, time: new Date().getTime(), ek: ekVeri };
-    
-    // fetch isteğini daha sağlam hale getirdik
-    fetch(SCRIPT_URL, {
-        method: 'POST',
-        header: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entry)
-    }).then(res => console.log("Veri senkronize edildi."))
-      .catch(err => console.error("Excel bağlantı hatası:", err));
-}
+        function sendToExcel(mesaj, tip, ekVeri = "") {
+            const entry = { user: selectedUser, tip: tip, mesaj: mesaj, time: new Date().getTime(), ek: ekVeri };
+            fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(entry) });
         }
 
         function startReset() {
@@ -829,12 +931,3 @@ window.displayGoals = function() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
