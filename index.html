@@ -1,11 +1,90 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ecem & melih</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+    .memory-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    margin-top: 20px;
+}
+
+.memory-stream {
+    max-height: 600px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column; /* Tekli sıra için */
+    gap: 20px;
+    padding: 10px;
+}
+
+.mem-bubble {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%; /* Tam genişlik */
+    box-sizing: border-box;
+}
+
+.mem-img { 
+    width: 100%; 
+    height: auto; /* Kare zorunluluğunu kaldırdık, orijinal boyutunda şık durur */
+    border-radius: 10px; 
+    cursor: pointer; 
+}
+
+/* Kimin gönderdiğine göre küçük bir renk farkı */
+.mem-Ecem { border-bottom: 3px solid #f43f5e; }
+.mem-Melih { border-bottom: 3px solid #3b82f6; }
+
+.mem-img { 
+    width: 100%; 
+    aspect-ratio: 1 / 1; /* Fotoğrafları kare yapar, daha düzenli durur */
+    object-fit: cover; 
+    border-radius: 8px; 
+    cursor: pointer; 
+}
+
+.mem-footer {
+    margin-top: 8px;
+    font-size: 10px;
+}
+
+.mem-user-name {
+    font-weight: bold;
+    display: block;
+    color: #e2e8f0;
+}
+
+.mem-text {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin: 4px 0;
+    word-break: break-word;
+}
+
+.mem-time {
+    color: #64748b;
+    font-size: 9px;
+}
+
+.mem-Ecem { align-self: flex-start; border-left: 4px solid #f43f5e; }
+.mem-Melih { align-self: flex-end; border-right: 4px solid #3b82f6; text-align: right; }
+
+.mem-info { font-size: 11px; color: #94a3b8; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
+.mem-date { font-size: 9px; color: #64748b; margin-top: 5px; }
+.mem-img { width: 100%; border-radius: 10px; margin-top: 5px; cursor: pointer; transition: 0.3s; }
+.mem-img:hover { opacity: 0.8; }
         body { background: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .hidden { display: none; }
         
@@ -174,19 +253,14 @@
     </div>
 </div>
 
-<div id="status-panel" style="background: rgba(30, 41, 59, 0.8); padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; margin-bottom: 10px; border: 1px solid #334155;">
-    Ecem: <span id="status-ecem">...</span> | Melih: <span id="status-melih">...</span>
-</div>
-
 <div class="love-card-wrapper">
     <div class="love-card" onclick="sendLoveClick()">
         <div class="love-content">
             <span class="sparkle">✨</span>
-            <span id="love-text-display">Sana Bir Mesajım Var... (Tıkla)</span>
+            <span id="love-text-display">Kalbimizden Bir Parça... ❤️</span>
             <span class="sparkle">✨</span>
         </div>
         <div id="love-stats" style="font-size: 0.75rem; margin-top: 10px; color: white; opacity: 0.9; font-weight: normal;">
-            Yükleniyor...
         </div>
         <div class="star-decor" style="top:10%; left:5%;">★</div>
         <div class="star-decor" style="bottom:10%; right:5%;">★</div>
@@ -269,6 +343,23 @@
                 <div class="scroll-area" id="bucketList"></div>
             </div>
         </div>
+  <div class="memory-card">
+    <h2 style="text-align:center; color: #f43f5e; margin-bottom:15px;">📸 Anı Akışı</h2>
+    
+    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+        <input type="text" id="memoryDesc" placeholder="Açıklama (İsteğe bağlı)" style="width:100%; padding:10px; border-radius:8px; border:none; background:#0f172a; color:white; margin-bottom:8px; box-sizing: border-box;">
+        <input type="text" id="memoryLink" placeholder="Veya Fotoğraf URL'si yapıştır..." style="width:100%; padding:10px; border-radius:8px; border:none; background:#0f172a; color:white; margin-bottom:8px; box-sizing: border-box;">
+        
+        <div style="display:flex; gap:8px;">
+            <input type="file" id="memoryFile" accept="image/*" style="display:none;" onchange="updateFileName()">
+            <button onclick="document.getElementById('memoryFile').click()" style="flex:1; background:#334155; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:12px;">📁 Dosya</button>
+            <button onclick="saveMemory()" style="flex:1; background:#f43f5e; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Gönder</button>
+        </div>
+        <p id="fileNameDisplay" style="font-size: 10px; color: #94a3b8; margin-top: 8px; text-align:center;">Dosya seçilmedi</p>
+    </div>
+
+    <div id="memoryGallery" class="memory-stream"></div>
+</div>
 
         <div id="map"></div>
     </div>
@@ -278,6 +369,66 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        // Firebase Yapılandırması (Görselinden alınan bilgiler)
+const firebaseConfig = {
+  apiKey: "AIzaSyC-RE1KJF-YQptezFsCdL3M-P7H4cH2SYA",
+  authDomain: "melihx.firebaseapp.com",
+  databaseURL: "https://melihx-default-rtdb.firebaseio.com",
+  projectId: "melihx",
+  storageBucket: "melihx.firebasestorage.app",
+  messagingSenderId: "792501147254",
+  appId: "1:792501147254:web:f4ad3b9a5e72c608adf157",
+  measurementId: "G-YVT7PPL7ZQ"
+};
+
+// 1. Firebase Başlatma (Hata almamak için kontrol ekliyoruz)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// --- GERÇEK ZAMANLI DİNLEYİCİLER ---
+
+// --- 3. ADIM: GERÇEK ZAMANLI DİNLEYİCİLER ---
+
+// 1. SOHBETLERİ DİNLE (2. Adım burada devreye giriyor)
+db.ref('chats').limitToLast(1).on('child_added', (snapshot) => {
+    const msgData = snapshot.val();
+    const chatBox = document.getElementById('chatBox');
+    
+    // Eğer mesajın ID'si ekranda zaten yoksa ekle (Çift yazmayı önler)
+    const msgId = `msg-${msgData.time}`;
+    if (!document.getElementById(msgId)) {
+        const div = document.createElement('div');
+        div.id = msgId; // Mesaja benzersiz bir ID veriyoruz
+        div.className = `msg msg-${msgData.user}`;
+        div.innerText = msgData.msg;
+        chatBox.appendChild(div);
+        
+        // Yeni mesaj gelince en aşağı kaydır
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+});
+
+// 2. NOTLARI DİNLE (Burası aynı kalsın)
+db.ref('notes').on('value', (snapshot) => {
+    const data = snapshot.val();
+    const notesArray = data ? Object.values(data) : [];
+    localStorage.setItem('notes', JSON.stringify(notesArray));
+    displayLogs();
+}); 
+
+// MODLAR
+db.ref('moods').on('value', (snapshot) => {
+    const moods = snapshot.val() || {};
+    Object.keys(moods).forEach(user => {
+        localStorage.setItem('mood_' + user, moods[user].mood);
+        localStorage.setItem('mood_time_' + user, moods[user].time);
+    });
+    if(typeof updateMoodUI === "function") updateMoodUI();
+});
+
+// ... (Buradan sonra mevcut selectedUser, displayChats vb. fonksiyonların devam etmeli)
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx55yER9raJ_bJizwyZqU1IUcmRCnb-Do2oqfhokbLRxQQepMjf3x9V5RUy3htcsxgCcw/exec";
         let selectedUser = localStorage.getItem('active_user') || null;
         let lastSyncData = "";
@@ -298,8 +449,7 @@
                 updateStreakUI();
             }
             startBirthdayTimers();
-// index.html'in en altındaki satırı bununla değiştirin:
-setInterval(syncVeri, 500);
+
         };        
 async function updateWeather() {
     const locations = {
@@ -511,45 +661,64 @@ function createConfetti() {
         }
 
 function sendChatMessage() {
-    const val = document.getElementById('chatInput').value;
-    if(!val) return;
+    const val = document.getElementById('chatInput').value.trim();
+    if(!val || !selectedUser) return;
 
     const chatBox = document.getElementById('chatBox');
-    
-    // 1. ADIM: Mesajı ekrana anında (beklemeden) ekle
-    const now = new Date().getTime();
-    const tempHtml = `<div class="msg msg-${selectedUser}" style="opacity: 0.6;" id="temp-${now}">${val}</div>`;
+    const now = Date.now(); // Benzersiz zaman damgası
+    const msgId = "msg-" + now;
+
+    // 1. ADIM: Ekrana ANINDA bas (0 gecikme illüzyonu)
+    const tempHtml = `<div class="msg msg-${selectedUser}" id="${msgId}">${val}</div>`;
     chatBox.innerHTML += tempHtml;
     chatBox.scrollTop = chatBox.scrollHeight;
-
-    // 2. ADIM: Excel'e arka planda gönder
-    sendToExcel(val, "Chat");
     
+    // Kutuyu hemen boşalt
     document.getElementById('chatInput').value = "";
-    
-    // 3. ADIM: Gecikmeyi öldüren kritik dokunuş (BURAYI EKLE)
-    // Mesaj gider gitmez beklemeden veriyi geri çekmeyi tetikle
-    setTimeout(syncVeri, 300); 
 
-    // 4. ADIM: Opaklığı düzelt
-    setTimeout(() => {
-        const tempMsg = document.getElementById(`temp-${now}`);
-        if(tempMsg) tempMsg.style.opacity = "1";
-    }, 2000);
-}
-function displayChats() {
-    const chats = JSON.parse(localStorage.getItem('chats') || "[]");
-    const chatBox = document.getElementById('chatBox');
-    chatBox.innerHTML = "";
-
-    // .reverse() ekleyerek son gelenin en üstte olmasını sağlıyoruz
-    chats.slice().reverse().forEach(c => {
-        const div = document.createElement('div');
-        div.className = `msg msg-${c.user}`;
-        div.innerText = c.msg;
-        chatBox.appendChild(div);
+    // 2. ADIM: Firebase'e gönder (Zamanı da gönderiyoruz ki ID'ler eşleşsin)
+    db.ref('chats').push({
+        user: selectedUser,
+        msg: val,
+        time: now
     });
-}
+
+    // 3. ADIM: Excel yedeğini 2 saniye sonra arka planda yap (Hız kesmesin)
+    setTimeout(() => {
+        if(typeof sendToExcel === "function") sendToExcel(val, "Chat");
+    }, 2000);
+} 
+
+ // --- 3. ADIM: GERÇEK ZAMANLI DİNLEYİCİLER ---
+
+// Sohbetleri Dinle: Yeni gelen mesajı yakala ve sadece ekranda yoksa ekle
+db.ref('chats').limitToLast(20).on('child_added', (snapshot) => {
+    const msgData = snapshot.val();
+    const chatBox = document.getElementById('chatBox');
+    
+    // Mesajın benzersiz kimliği (Zaman damgasını ID olarak kullanıyoruz)
+    const msgId = "msg-" + msgData.time;
+
+    // EĞER BU MESAJ EKRANDA YOKSA EKLE (Çift yazmayı engelleyen kontrol)
+    if (!document.getElementById(msgId)) {
+        const div = document.createElement('div');
+        div.id = msgId; 
+        div.className = `msg msg-${msgData.user}`;
+        div.innerText = msgData.msg;
+        chatBox.appendChild(div);
+        
+        // Yeni mesaj gelince en aşağı kaydır
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+});
+
+// Notları Dinle (Notların da hızlı gelmesi için)
+db.ref('notes').on('value', (snapshot) => {
+    const data = snapshot.val();
+    const notesArray = data ? Object.values(data) : [];
+    localStorage.setItem('notes', JSON.stringify(notesArray));
+    if(typeof displayLogs === "function") displayLogs();
+});
 
         function setUser(name) {
             selectedUser = name;
@@ -604,13 +773,20 @@ setInterval(updateWeather, 900000); // 15 dakikada bir otomatik günceller
             setInterval(() => { updateTimer(8, 12, 'ecemTimer'); updateTimer(6, 7, 'melihTimer'); }, 1000);
         }
 
-        function selectMood(id) {
-            const time = new Date().getTime();
-            localStorage.setItem('mood_' + selectedUser, id);
-            localStorage.setItem('mood_time_' + selectedUser, time);
-            updateMoodUI();
-            sendToExcel(id, "Mod Güncelleme", time);
-        }
+       function selectMood(id) {
+    const time = Date.now();
+    // Firebase'e gönder (Anında güncellenmesi için)
+    db.ref('moods/' + selectedUser).set({
+        mood: id,
+        time: time
+    });
+    
+    // Yerel ve Excel güncellemesi
+    localStorage.setItem('mood_' + selectedUser, id);
+    localStorage.setItem('mood_time_' + selectedUser, time);
+    updateMoodUI();
+    sendToExcel(id, "Mod Güncelleme", time);
+}
 
         function updateMoodUI() {
             document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
@@ -678,13 +854,19 @@ setInterval(updateWeather, 900000); // 15 dakikada bir otomatik günceller
         }
 function sendNote() {
     const val = document.getElementById('noteInput').value;
-    if(!val) return;
+    if(!val || !selectedUser) return;
     
-    // YEREL KAYIT SİLİNDİ: Notu direkt buluta gönderiyoruz.
+    // Firebase'e gönder (Notlar artık buraya kaydedilecek)
+    db.ref('notes').push({
+        user: selectedUser,
+        mesaj: val,
+        time: Date.now()
+    });
+    
+    // Excel'e yedekle (Eski sistemin için)
     sendToExcel(val, "Not");
     
     document.getElementById('noteInput').value = "";
-    // displayLogs() çağırmanıza gerek yok, syncVeri her saniye kontrol edip ekrana basacak.
 }
 
         function displayLogs() {
@@ -890,7 +1072,84 @@ window.displayGoals = function() {
         });
     }
 };
+function updateFileName() {
+    const input = document.getElementById('memoryFile');
+    const display = document.getElementById('fileNameDisplay');
+    if (input.files.length > 0) display.innerText = "✅ " + input.files[0].name;
+}
+
+function saveMemory() {
+    const desc = document.getElementById('memoryDesc').value;
+    const link = document.getElementById('memoryLink').value;
+    const file = document.getElementById('memoryFile').files[0];
+
+    if (!selectedUser) { alert("Kim olduğunuzu seçin!"); return; }
+    if (!file && !link) { alert("Fotoğraf seçin veya URL girin!"); return; }
+
+    const memoryData = {
+        user: selectedUser,
+        description: desc || "",
+        date: new Date().toLocaleString('tr-TR'),
+        timestamp: Date.now()
+    };
+
+    const finalizeAndPush = (imgData) => {
+        memoryData.image = imgData;
+        db.ref('memories').push(memoryData).then(() => {
+            document.getElementById('memoryDesc').value = "";
+            document.getElementById('memoryLink').value = "";
+            document.getElementById('memoryFile').value = "";
+            document.getElementById('fileNameDisplay').innerText = "Dosya seçilmedi";
+        });
+    };
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600; // 2'li görünüm için 600px yeterli
+                const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                finalizeAndPush(canvas.toDataURL('image/jpeg', 0.6));
+            };
+        };
+        reader.readAsDataURL(file);
+    } else {
+        finalizeAndPush(link);
+    }
+}
+
+db.ref('memories').on('value', (snapshot) => {
+    const gallery = document.getElementById('memoryGallery');
+    if(!gallery) return;
+    gallery.innerHTML = "";
+    const data = snapshot.val();
+    if (data) {
+        // En yeni anı en üstte görünsün
+        Object.values(data).sort((a,b) => b.timestamp - a.timestamp).forEach(mem => {
+            const div = document.createElement('div');
+            // Kimin gönderdiğine göre özel sınıf ekliyoruz
+            div.className = `mem-bubble mem-${mem.user}`;
+            div.innerHTML = `
+                <img src="${mem.image}" class="mem-img" onclick="window.open(this.src)">
+                <div class="mem-footer" style="margin-top: 10px;">
+                    ${mem.description ? `<p class="mem-text" style="margin: 0 0 8px 0; color: #f1f5f9; font-size: 15px;">${mem.description}</p>` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                        <span class="mem-user-name" style="font-weight: bold; font-size: 12px; color: #f43f5e;">👤 ${mem.user}</span>
+                        <span class="mem-time" style="color: #64748b; font-size: 10px;">📅 ${mem.date}</span>
+                    </div>
+                </div>
+            `;
+            gallery.appendChild(div);
+        });
+    }
+});
     </script>
 </body>
 </html>
-
