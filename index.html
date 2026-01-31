@@ -8,6 +8,29 @@
     <title>ecem & melih</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        /* Fotoğraf tıklandığında açılan pencere (Modal) */
+#modalContent {
+    max-width: 85%;     /* Ekranın %85'inden fazla genişlemesin */
+    max-height: 80vh;   /* Ekran yüksekliğinin %80'ini geçmesin */
+    width: auto;        /* Kendi oranını korusun */
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+    border: 3px solid white; /* Fotoğraf etrafına şık bir çerçeve */
+}
+        /* Anılar kısmındaki fotoğrafların boyutu */
+.item-card img {
+    width: 100%;        /* Kartın genişliğine uysun */
+    max-height: 150px;  /* Yüksekliği sınırla, çok yer kaplamasın */
+    object-fit: cover;  /* Fotoğrafı bozmadan sığdır */
+    border-radius: 8px; /* Köşeleri yumuşat */
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.item-card img:hover {
+    transform: scale(1.02); /* Üzerine gelince çok hafif büyüsün */
+}
        .admin-delete-btn {
     display: none !important;
 }
@@ -236,6 +259,8 @@ body.admin-active .admin-delete-btn {
     0%, 100% { opacity: 1; scale: 1; }
     50% { opacity: 0.3; scale: 1.3; }
 }
+.note-ecem { border-left: 5px solid #ec4899 !important; background: rgba(236, 72, 153, 0.1) !important; }
+.note-melih { border-left: 5px solid #3b82f6 !important; background: rgba(59, 130, 246, 0.1) !important; }
     </style>
 </head>
 <body>
@@ -327,7 +352,7 @@ body.admin-active .admin-delete-btn {
 
             <div class="column-box">
                 <h3>💬 Sohbet</h3>
-                <div class="chat-container">
+          <div class="chat-container">
                     <div class="chat-messages" id="chatBox"></div>
                     <div class="chat-input-row">
                         <button class="quick-msg-btn" onclick="toggleQuickMenu()">+</button>
@@ -426,48 +451,52 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
-// MERKEZİ SİLME FONKSİYONU (Soru Sormaz)
-function direktSil(path, key) {
-    db.ref(path).child(key).remove()
-    .then(() => console.log("Silindi"))
-    .catch(e => console.error("Hata:", e));
+// MESAJ GÖNDERME FONKSİYONU
+function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    // Senin dosyanın geri kalanına uyumlu olması için active_user kullanıyoruz
+    const user = localStorage.getItem('active_user'); 
+
+    if(!msg || !user) return;
+
+    db.ref('chats').push({
+        user: user,
+        msg: msg,
+        time: Date.now(),
+        clock: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    });
+    
+    input.value = "";
 }
 
-db.ref('chats').limitToLast(20).on('child_added', (snapshot) => {
-    const msgData = snapshot.val();
-    const chatBox = document.getElementById('chatBox');
-    const msgId = "msg-" + msgData.time;
-    // Eğer saat bilgisi yoksa (eski mesajlar için) anlık saati oluşturur
-    const displayTime = msgData.clock || new Date(msgData.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-
-    if (!document.getElementById(msgId)) {
-        const div = document.createElement('div');
-        div.id = msgId; 
-        div.className = `msg msg-${msgData.user}`;
-        // Mesaj içeriği ve altına küçük saat bilgisi
-        div.innerHTML = `
-            ${msgData.msg}
-            <div style="font-size: 8px; opacity: 0.7; margin-top: 4px; text-align: right;">${displayTime}</div>
-        `;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-});
-
-// Ortak Notları Güncelle
+// Ortak Notları Güncelle (Renkli ve Çizgili Görünüm)
 db.ref('notes').on('value', (snapshot) => {
     const noteList = document.getElementById('noteList');
     if(!noteList) return;
     noteList.innerHTML = "";
     snapshot.forEach((child) => {
         const data = child.val();
+        const key = child.key;
         const div = document.createElement('div');
+        
+        // Kullanıcıya göre renk ve stil belirleme
+        const isEcem = data.user === 'ecem';
+        const color = isEcem ? '#ec4899' : '#3b82f6'; // Pembe veya Mavi
+        const bgColor = isEcem ? 'rgba(236, 72, 153, 0.1)' : 'rgba(59, 130, 246, 0.1)';
+
         div.className = "item-card";
-        // Çarpı butonu kaldırıldı, sadece içerik
+        // Sol tarafa ince çizgi ve arka plan rengi ekliyoruz
+        div.style.borderLeft = `5px solid ${color}`;
+        div.style.background = bgColor;
+        div.style.marginBottom = "8px";
+        div.style.padding = "10px";
+        div.style.borderRadius = "8px";
+
         div.innerHTML = `
-            <p style="margin: 0; color: white;">${data.mesaj}</p>
-            <div style="font-size:10px; color:#94a3b8; margin-top:5px;">
-                👤 ${data.user} - 📅 ${data.tarih || new Date(data.time).toLocaleString('tr-TR')}
+            <p style="margin: 0; color: white; font-weight: 500;">${data.mesaj}</p>
+            <div style="font-size:10px; color:${color}; margin-top:5px; font-weight: bold;">
+                👤 ${data.user.toUpperCase()} - 📅 ${data.tarih || new Date(data.time).toLocaleString('tr-TR')}
             </div>
         `;
         noteList.appendChild(div);
@@ -811,19 +840,14 @@ setInterval(updateWeather, 900000); // 15 dakikada bir otomatik günceller
             setInterval(() => { updateTimer(8, 12, 'ecemTimer'); updateTimer(6, 7, 'melihTimer'); }, 1000);
         }
 
-       function selectMood(id) {
-    const time = Date.now();
-    // Firebase'e gönder (Anında güncellenmesi için)
-    db.ref('moods/' + selectedUser).set({
-        mood: id,
-        time: time
+     function selectMood(moodId) {
+    const user = localStorage.getItem('active_user');
+    if(!user) { alert("Lütfen önce giriş yapın!"); return; }
+    // Firebase'e mod gönderiyoruz
+    db.ref('moods/' + user).set({
+        mood: moodId,
+        time: Date.now()
     });
-    
-    // Yerel ve Excel güncellemesi
-    localStorage.setItem('mood_' + selectedUser, id);
-    localStorage.setItem('mood_time_' + selectedUser, time);
-    updateMoodUI();
-    sendToExcel(id, "Mod Güncelleme", time);
 }
 
         function updateMoodUI() {
@@ -1156,7 +1180,7 @@ db.ref('memories').on('value', (snapshot) => {
             // Kimin gönderdiğine göre özel sınıf ekliyoruz
             div.className = `mem-bubble mem-${mem.user}`;
             div.innerHTML = `
-                <img src="${mem.image}" class="mem-img" onclick="window.open(this.src)">
+                <img src="${mem.image}" class="mem-img" onclick="const w=window.open(); w.document.write('<img src='+this.src+' style=width:100%>');"
                 <div class="mem-footer" style="margin-top: 10px;">
                     ${mem.description ? `<p class="mem-text" style="margin: 0 0 8px 0; color: #f1f5f9; font-size: 15px;">${mem.description}</p>` : ''}
                     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
@@ -1178,6 +1202,93 @@ function direktSil(path, key) {
     .catch((error) => {
         console.error("Silme hatası:", error);
     });
+}
+// MODLARI ANLIK GÜNCELLE
+db.ref('moods').on('value', (snapshot) => {
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.user-tag').forEach(t => t.innerHTML = "");
+    snapshot.forEach(child => {
+        const u = child.key; const d = child.val();
+        if(d && (Date.now() - d.time < 86400000)) {
+            const btn = document.getElementById('m-'+d.mood);
+            if(btn) btn.classList.add('active');
+            const tag = document.getElementById('tag-'+d.mood);
+            if(tag) {
+                const color = u === 'ecem' ? '#ec4899' : '#3b82f6';
+                tag.innerHTML += `<span style="color:${color}; font-weight:bold; font-size:10px; margin-right:5px;">${u.toUpperCase()}</span>`;
+            }
+        }
+    });
+});
+
+// CHAT GÖNDERME FONKSİYONU
+function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const user = localStorage.getItem('active_user');
+    if(!input.value.trim() || !user) return;
+    db.ref('chats').push({
+        user: user,
+        msg: input.value,
+        time: Date.now(),
+        clock: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    });
+    input.value = "";
+}
+// MESAJLARI EKRANA BASAN TEK VE ASIL FONKSİYON
+db.ref('chats').limitToLast(20).on('child_added', (snapshot) => {
+    const data = snapshot.val();
+    const key = snapshot.key; // Mesajın benzersiz kimliği
+    const chatBox = document.getElementById('chatBox');
+    
+    if(chatBox) {
+        // Eğer mesaj zaten ekrandaysa (ID kontrolü), tekrar ekleme!
+        if(document.getElementById('msg-' + key)) return;
+
+        const div = document.createElement('div');
+        div.id = 'msg-' + key; // Her mesaja benzersiz ID veriyoruz
+        div.className = `msg msg-${data.user}`;
+        div.style.padding = "8px 12px";
+        div.style.borderRadius = "10px";
+        div.style.maxWidth = "80%";
+        div.style.color = "white";
+        div.style.marginBottom = "5px";
+        div.style.background = data.user === 'ecem' ? '#ec4899' : '#3b82f6';
+        div.style.alignSelf = data.user === 'ecem' ? 'flex-start' : 'flex-end';
+        
+        // Admin modu için silme butonu (varsa)
+        let deleteBtn = document.body.classList.contains('admin-active') 
+            ? `<button onclick="direktSil('chats', '${key}')" style="background:none; border:none; color:white; cursor:pointer; float:left; margin-right:5px;">×</button>` 
+            : '';
+
+        div.innerHTML = `${deleteBtn} ${data.msg} <div style="font-size:8px; opacity:0.6; text-align:right;">${data.clock || ''}</div>`;
+        
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+});
+// Fotoğrafı normal boyutta açan fonksiyon
+function openModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalContent');
+    
+    if(modal && modalImg) {
+        modal.style.display = "flex"; // Fotoğrafı ekranın ortasına hizalar
+        modalImg.src = src; // Tıklanan fotoğrafın adresini yükler
+        
+        // Fotoğrafın ekranı kaplamaması için genişliğini ayarla
+        modalImg.style.maxWidth = "85%";
+        modalImg.style.maxHeight = "80vh";
+        modalImg.style.width = "auto";
+        modalImg.style.height = "auto";
+    }
+}
+
+// Modal penceresini kapatmak için (Dışarı tıklayınca kapanır)
+window.onclick = function(event) {
+    const modal = document.getElementById('imageModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
 }
     </script>
 </body>
