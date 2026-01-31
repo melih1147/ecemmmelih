@@ -8,6 +8,35 @@
     <title>ecem & melih</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+       .admin-delete-btn {
+    display: none !important;
+}
+/* Çarpı butonları normalde gizli */
+.admin-delete-btn {
+        position: absolute !important;
+        top: 5px !important;
+    left: 5px !important;
+    z-index: 9999 !important;
+    background: #ef4444 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 22px !important;
+    height: 22px !important;
+    cursor: pointer !important;
+    display: none !important; /* GİZLİ */
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+}
+
+/* Sadece admin modu açılınca çarpıları göster */
+body.admin-active .admin-delete-btn {
+    display: flex !important;
+}
+
+/* Kutuların konumunu ayarla */
+.msg, .item-card, .mem-bubble { position: relative !important; }
     .memory-card {
     background: var(--card-bg);
     border-radius: 20px;
@@ -219,6 +248,7 @@
             <button class="identity-btn btn-melih" onclick="setUser('melih')">MELİH</button>
         </div>
     </div>
+    <div onclick="adminSisteminiAc()" style="position:fixed; bottom:0; right:0; width:40px; height:40px; cursor:pointer; z-index:1000000; background:transparent;"></div>
 
     <div id="step1" class="hidden" style="text-align:center; margin-top:100px;">
         <h1 style="letter-spacing: 3px;">ecem & melih</h1>
@@ -329,12 +359,12 @@
                 </div>
             </div>
 
-            <div class="column-box">
-                <h3>📝 Ortak Notlar</h3>
-                <input type="text" id="noteInput" placeholder="Bir şeyler yaz..." onkeypress="if(event.key==='Enter')sendNote()">
-                <button class="btn" style="background:#3b82f6;" onclick="sendNote()">Gönder</button>
-                <div class="scroll-area" id="logList"></div>
-            </div>
+           <div class="column-box">
+    <h3>📝 Ortak Notlar</h3>
+    <input type="text" id="noteInput" placeholder="Bir şeyler yaz..." onkeypress="if(event.key==='Enter')sendNote()">
+    <button class="btn" style="background:#3b82f6;" onclick="sendNote()">Gönder</button>
+    <div class="scroll-area" id="noteList"></div> 
+</div>
 
             <div class="column-box">
                 <h3>📍 Planlar / Hedefler</h3>
@@ -358,17 +388,26 @@
         <p id="fileNameDisplay" style="font-size: 10px; color: #94a3b8; margin-top: 8px; text-align:center;">Dosya seçilmedi</p>
     </div>
 
-    <div id="memoryGallery" class="memory-stream"></div>
+<div id="memoryGallery" class="memory-stream"></div>
 </div>
 
+        <div class="memory-card">
+            <h2 style="text-align:center; color: #f43f5e; margin-bottom:15px;">📸 Anı Akışı</h2>
+            <div id="memoryGallery" class="memory-stream"></div>
+        </div>
+
         <div id="map"></div>
-    </div>
+    </div> <div onclick="tamTemizlik()" style="position:fixed; bottom:0; right:0; width:50px; height:50px; cursor:pointer; z-index:999999; background:rgba(255,0,0,0.1); display:none;"></div>
 
-    <div class="admin-trigger" onclick="adminLogin()"></div>
-
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+       // ... Firebase ve JS kodların ...
+    </script>
+</body>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        
         // Firebase Yapılandırması (Görselinden alınan bilgiler)
 const firebaseConfig = {
   apiKey: "AIzaSyC-RE1KJF-YQptezFsCdL3M-P7H4cH2SYA",
@@ -387,45 +426,71 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
-// --- GERÇEK ZAMANLI DİNLEYİCİLER ---
+// MERKEZİ SİLME FONKSİYONU (Soru Sormaz)
+function direktSil(path, key) {
+    db.ref(path).child(key).remove()
+    .then(() => console.log("Silindi"))
+    .catch(e => console.error("Hata:", e));
+}
 
-// --- 3. ADIM: GERÇEK ZAMANLI DİNLEYİCİLER ---
-
-// 1. SOHBETLERİ DİNLE (2. Adım burada devreye giriyor)
-db.ref('chats').limitToLast(1).on('child_added', (snapshot) => {
+db.ref('chats').limitToLast(20).on('child_added', (snapshot) => {
     const msgData = snapshot.val();
     const chatBox = document.getElementById('chatBox');
-    
-    // Eğer mesajın ID'si ekranda zaten yoksa ekle (Çift yazmayı önler)
-    const msgId = `msg-${msgData.time}`;
+    const msgId = "msg-" + msgData.time;
+    // Eğer saat bilgisi yoksa (eski mesajlar için) anlık saati oluşturur
+    const displayTime = msgData.clock || new Date(msgData.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
     if (!document.getElementById(msgId)) {
         const div = document.createElement('div');
-        div.id = msgId; // Mesaja benzersiz bir ID veriyoruz
+        div.id = msgId; 
         div.className = `msg msg-${msgData.user}`;
-        div.innerText = msgData.msg;
+        // Mesaj içeriği ve altına küçük saat bilgisi
+        div.innerHTML = `
+            ${msgData.msg}
+            <div style="font-size: 8px; opacity: 0.7; margin-top: 4px; text-align: right;">${displayTime}</div>
+        `;
         chatBox.appendChild(div);
-        
-        // Yeni mesaj gelince en aşağı kaydır
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 });
 
-// 2. NOTLARI DİNLE (Burası aynı kalsın)
+// Ortak Notları Güncelle
 db.ref('notes').on('value', (snapshot) => {
-    const data = snapshot.val();
-    const notesArray = data ? Object.values(data) : [];
-    localStorage.setItem('notes', JSON.stringify(notesArray));
-    displayLogs();
-}); 
-
-// MODLAR
-db.ref('moods').on('value', (snapshot) => {
-    const moods = snapshot.val() || {};
-    Object.keys(moods).forEach(user => {
-        localStorage.setItem('mood_' + user, moods[user].mood);
-        localStorage.setItem('mood_time_' + user, moods[user].time);
+    const noteList = document.getElementById('noteList');
+    if(!noteList) return;
+    noteList.innerHTML = "";
+    snapshot.forEach((child) => {
+        const data = child.val();
+        const div = document.createElement('div');
+        div.className = "item-card";
+        // Çarpı butonu kaldırıldı, sadece içerik
+        div.innerHTML = `
+            <p style="margin: 0; color: white;">${data.mesaj}</p>
+            <div style="font-size:10px; color:#94a3b8; margin-top:5px;">
+                👤 ${data.user} - 📅 ${data.tarih || new Date(data.time).toLocaleString('tr-TR')}
+            </div>
+        `;
+        noteList.appendChild(div);
     });
-    if(typeof updateMoodUI === "function") updateMoodUI();
+});
+
+// 3. ANILARI GÜNCELLE (Silme yeri eklenmiş hali)
+db.ref('memories').on('value', (snapshot) => {
+    const gallery = document.getElementById('gallery');
+    if(!gallery) return;
+    gallery.innerHTML = "";
+    snapshot.forEach((child) => {
+        const data = child.val();
+        const key = child.key;
+        const div = document.createElement('div');
+        div.className = "mem-bubble";
+        div.innerHTML = `
+            <button class="delete-item-btn" onclick="direktSil('memories', '${key}')">×</button>
+            <img src="${data.url}" style="width:100%; border-radius:12px; display:block;">
+            ${data.description ? `<p style="margin-top:8px; font-size:14px; color:white;">${data.description}</p>` : ''}
+        `;
+        gallery.appendChild(div);
+    });
 });
 
 // ... (Buradan sonra mevcut selectedUser, displayChats vb. fonksiyonların devam etmeli)
@@ -665,60 +730,33 @@ function sendChatMessage() {
     if(!val || !selectedUser) return;
 
     const chatBox = document.getElementById('chatBox');
-    const now = Date.now(); // Benzersiz zaman damgası
+    const now = Date.now(); 
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }); // "22:15" gibi
     const msgId = "msg-" + now;
 
-    // 1. ADIM: Ekrana ANINDA bas (0 gecikme illüzyonu)
-    const tempHtml = `<div class="msg msg-${selectedUser}" id="${msgId}">${val}</div>`;
+    // 1. ADIM: Ekrana ANINDA bas (Tarih eklendi)
+    const tempHtml = `
+        <div class="msg msg-${selectedUser}" id="${msgId}">
+            ${val}
+            <div style="font-size: 8px; opacity: 0.7; margin-top: 4px; text-align: right;">${timeStr}</div>
+        </div>`;
     chatBox.innerHTML += tempHtml;
     chatBox.scrollTop = chatBox.scrollHeight;
     
-    // Kutuyu hemen boşalt
     document.getElementById('chatInput').value = "";
 
-    // 2. ADIM: Firebase'e gönder (Zamanı da gönderiyoruz ki ID'ler eşleşsin)
+    // 2. ADIM: Firebase'e gönder (Zaman bilgisini de ekledik)
     db.ref('chats').push({
         user: selectedUser,
         msg: val,
-        time: now
+        time: now,
+        clock: timeStr // Saat bilgisini buraya ekledik
     });
 
-    // 3. ADIM: Excel yedeğini 2 saniye sonra arka planda yap (Hız kesmesin)
     setTimeout(() => {
         if(typeof sendToExcel === "function") sendToExcel(val, "Chat");
     }, 2000);
-} 
-
- // --- 3. ADIM: GERÇEK ZAMANLI DİNLEYİCİLER ---
-
-// Sohbetleri Dinle: Yeni gelen mesajı yakala ve sadece ekranda yoksa ekle
-db.ref('chats').limitToLast(20).on('child_added', (snapshot) => {
-    const msgData = snapshot.val();
-    const chatBox = document.getElementById('chatBox');
-    
-    // Mesajın benzersiz kimliği (Zaman damgasını ID olarak kullanıyoruz)
-    const msgId = "msg-" + msgData.time;
-
-    // EĞER BU MESAJ EKRANDA YOKSA EKLE (Çift yazmayı engelleyen kontrol)
-    if (!document.getElementById(msgId)) {
-        const div = document.createElement('div');
-        div.id = msgId; 
-        div.className = `msg msg-${msgData.user}`;
-        div.innerText = msgData.msg;
-        chatBox.appendChild(div);
-        
-        // Yeni mesaj gelince en aşağı kaydır
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-});
-
-// Notları Dinle (Notların da hızlı gelmesi için)
-db.ref('notes').on('value', (snapshot) => {
-    const data = snapshot.val();
-    const notesArray = data ? Object.values(data) : [];
-    localStorage.setItem('notes', JSON.stringify(notesArray));
-    if(typeof displayLogs === "function") displayLogs();
-});
+}
 
         function setUser(name) {
             selectedUser = name;
@@ -853,18 +891,15 @@ setInterval(updateWeather, 900000); // 15 dakikada bir otomatik günceller
             }
         }
 function sendNote() {
-    const val = document.getElementById('noteInput').value;
+    const val = document.getElementById('noteInput').value.trim();
     if(!val || !selectedUser) return;
     
-    // Firebase'e gönder (Notlar artık buraya kaydedilecek)
     db.ref('notes').push({
         user: selectedUser,
         mesaj: val,
-        time: Date.now()
+        time: Date.now(),
+        tarih: new Date().toLocaleString('tr-TR')
     });
-    
-    // Excel'e yedekle (Eski sistemin için)
-    sendToExcel(val, "Not");
     
     document.getElementById('noteInput').value = "";
 }
@@ -910,58 +945,42 @@ function sendNote() {
             if(song) { navigator.clipboard.writeText(song); alert(`Kopyalandı!`); }
         }
 
-// 1. Ortak Senkronizasyon: Başka sekmede işlem yapıldığında anında güncelle
-window.addEventListener('storage', (e) => {
-    const keys = ['chats', 'notes', 'goals'];
-    if (keys.includes(e.key)) {
-        if(typeof displayChats === "function") displayChats();
-        if(typeof displayLogs === "function") displayLogs();
-        if(typeof displayGoals === "function") displayGoals();
-    }
-});
+function adminSisteminiAc() {
+    let id = prompt("ID Girin:");
+    let sifre = prompt("Şifre Girin:");
 
-// 2. Ana Admin Fonksiyonu
-function adminLogin() {
-    const id = prompt("Admin ID:");
-    const pw = prompt("Şifre:");
-    if(id === "melih" && pw === "9999") {
-        const action = prompt("1: Silme modunu aç/kapat\n2: Tüm verileri SORGUSUZ sıfırla");
-        
-        if(action === "1") {
+    if (id === "melih" && sifre === "9999") {
+        let islem = prompt("Ne yapmak istiyorsun?\n1: Çarpıları Aç/Kapat\n2: HER ŞEYİ SİL (TOPLU)");
+
+        if (islem === "1") {
+            // Çarpı işaretlerini gösterir veya gizler
             document.body.classList.toggle('admin-active');
-            const isActive = document.body.classList.contains('admin-active');
-            // Kullanıcıyı bekletmemek için alert yerine konsola yazıyoruz
-            console.log(isActive ? "Silme modu aktif" : "Kapatıldı");
-            
-            // Ekranı tazele ki butonlar gelsin/gitsin
-            if(typeof displayChats === "function") displayChats();
-            if(typeof displayLogs === "function") displayLogs();
-            if(typeof displayGoals === "function") displayGoals();
-        } else if(action === "2") {
-            // Soru sormadan direkt temizler
-            localStorage.clear(); 
-            location.reload(); 
+            alert("Düzenleme modu değiştirildi.");
+        } 
+        else if (islem === "2") {
+            // Toplu silme
+            if (confirm("DİKKAT! Her şey silinecek. Emin misin?")) {
+                const refRoot = firebase.database().ref();
+                Promise.all([
+                    refRoot.child('chats').remove(),
+                    refRoot.child('notes').remove(),
+                    refRoot.child('memories').remove()
+                ]).then(() => {
+                    alert("Veritabanı sıfırlandı.");
+                    location.reload();
+                });
+            }
         }
     } else {
         alert("Hatalı giriş!");
     }
 }
 
-let startTime = Date.now();
-
-// 1. ONAYSIZ SİLME (Bastığın an gider)
-function deleteItem(type, index, callback) {
-    let data = JSON.parse(localStorage.getItem(type) || "[]");
-    if(data[index]) {
-        const item = data[index];
-        const silmeMesaji = (type === 'chats') ? item.msg : (item.mesaj || item.text);
-        
-        sendToExcel(silmeMesaji, "SIL_"+type); // Excel'e silme komutu gönder
-        
-        data.splice(index, 1);
-        localStorage.setItem(type, JSON.stringify(data));
-        if(callback) callback();
-    }
+// Tekli silme fonksiyonu (Çarpılara basınca çalışır)
+function directDelete(path, key) {
+    firebase.database().ref(path).child(key).remove()
+    .then(() => console.log("Silindi"))
+    .catch(e => alert("Hata: " + e.message));
 }
 
 // 2. SEVGİ SAYACI FONKSİYONU
@@ -1150,6 +1169,16 @@ db.ref('memories').on('value', (snapshot) => {
         });
     }
 });
+// Onay sormadan direkt silen merkezi fonksiyon
+function direktSil(path, key) {
+    db.ref(path).child(key).remove()
+    .then(() => {
+        console.log(path + " içinden bir öğe başarıyla silindi.");
+    })
+    .catch((error) => {
+        console.error("Silme hatası:", error);
+    });
+}
     </script>
 </body>
 </html>
